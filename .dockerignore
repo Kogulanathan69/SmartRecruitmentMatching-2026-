@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+.git/
+.gitignore
+*.user
+*.suo
+*.zip
+TestResults/
+coverage/
+docs/
+database/Diagrams/

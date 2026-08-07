@@ -1,0 +1,21 @@
+NexHire CS1061 EF Core configuration fix
+
+Fixed files:
+- src/NexHire.Infrastructure/Data/Configurations/JobConfiguration.cs
+- src/NexHire.Infrastructure/Data/Configurations/JobSeekerConfiguration.cs
+
+The invalid calls builder.Entity<T>() were removed because builder is an
+EntityTypeBuilder<Job> / EntityTypeBuilder<JobSeekerProfile>, not ModelBuilder.
+
+Dedicated IEntityTypeConfiguration classes were added:
+- CandidateSkillConfiguration.cs
+- JobRequiredSkillConfiguration.cs
+- JobPreferredSkillConfiguration.cs
+
+They contain the composite unique indexes and Skill relationships. AppDbContext
+already calls ApplyConfigurationsFromAssembly, so EF Core discovers them.
+
+After extracting, run:
+  dotnet clean
+  dotnet restore
+  dotnet build
