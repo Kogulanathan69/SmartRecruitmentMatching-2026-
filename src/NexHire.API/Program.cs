@@ -145,6 +145,11 @@ builder.Services.AddScoped<
     IMatchingEngine,
     MatchingEngine>();
 
+// Application-level matching orchestration service.
+builder.Services.AddScoped<
+    IMatchingService,
+    MatchingService>();
+
 //
 // ----------------------------------------------------
 // 11. AUTHORIZATION
