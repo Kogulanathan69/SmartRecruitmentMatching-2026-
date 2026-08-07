@@ -5,7 +5,8 @@ using NexHire.API.Services;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Services;
-
+using NexHire.Application.Matching;
+using NexHire.Infrastructure.Matching;
 using NexHire.Infrastructure.Data;
 using NexHire.Infrastructure.Repositories;
 
@@ -108,7 +109,41 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IConsentContactService,
     ConsentContactService>();
+//
+// ----------------------------------------------------
+// MATCHING ENGINE
+// ----------------------------------------------------
+//
 
+// Eligibility rules.
+builder.Services.AddScoped<
+    IEligibilityEngine,
+    EligibilityEngine>();
+
+// Individual score calculators.
+builder.Services.AddScoped<SkillMatchCalculator>();
+builder.Services.AddScoped<ExperienceMatchCalculator>();
+builder.Services.AddScoped<EducationMatchCalculator>();
+builder.Services.AddScoped<CertificationMatchCalculator>();
+builder.Services.AddScoped<LocationMatchCalculator>();
+builder.Services.AddScoped<ProjectMatchCalculator>();
+builder.Services.AddScoped<ProfileCompletionMatchCalculator>();
+
+// Final weighted score calculator.
+builder.Services.AddScoped<MatchScoreCalculator>();
+
+// Recommendation, ranking and comparison.
+builder.Services.AddScoped<
+    IRecommendationEngine,
+    RecommendationEngine>();
+
+builder.Services.AddScoped<CandidateRankingEngine>();
+builder.Services.AddScoped<CandidateComparisonEngine>();
+
+// Main facade used by MatchingService/API.
+builder.Services.AddScoped<
+    IMatchingEngine,
+    MatchingEngine>();
 
 //
 // ----------------------------------------------------

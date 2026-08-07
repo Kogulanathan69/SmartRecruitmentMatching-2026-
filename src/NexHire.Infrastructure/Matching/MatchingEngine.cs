@@ -14,7 +14,7 @@ namespace NexHire.Infrastructure.Matching;
 /// </summary>
 public class MatchingEngine : IMatchingEngine
 {
-    private readonly EligibilityEngine _eligibilityEngine;
+    private readonly IEligibilityEngine _eligibilityEngine;
     private readonly SkillMatchCalculator _skillMatchCalculator;
     private readonly ExperienceMatchCalculator _experienceMatchCalculator;
     private readonly EducationMatchCalculator _educationMatchCalculator;
@@ -28,7 +28,7 @@ public class MatchingEngine : IMatchingEngine
     private readonly CandidateComparisonEngine _candidateComparisonEngine;
 
     public MatchingEngine(
-        EligibilityEngine eligibilityEngine,
+        IEligibilityEngine eligibilityEngine,
         SkillMatchCalculator skillMatchCalculator,
         ExperienceMatchCalculator experienceMatchCalculator,
         EducationMatchCalculator educationMatchCalculator,
