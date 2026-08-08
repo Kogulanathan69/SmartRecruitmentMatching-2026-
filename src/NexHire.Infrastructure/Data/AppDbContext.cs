@@ -21,6 +21,18 @@ public class AppDbContext : DbContext
     public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
     public DbSet<CompanyVerification> CompanyVerifications => Set<CompanyVerification>();
 
+    public DbSet<JobSeekerProfile> JobSeekerProfiles => Set<JobSeekerProfile>();
+    public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<CandidateSkill> CandidateSkills => Set<CandidateSkill>();
+
+    public DbSet<Job> Jobs => Set<Job>();
+    public DbSet<JobRequiredSkill> JobRequiredSkills => Set<JobRequiredSkill>();
+    public DbSet<JobPreferredSkill> JobPreferredSkills => Set<JobPreferredSkill>();
+
+    public DbSet<MatchingRule> MatchingRules => Set<MatchingRule>();
+    public DbSet<MatchResult> MatchResults => Set<MatchResult>();
+    public DbSet<MatchScoreDetail> MatchScoreDetails => Set<MatchScoreDetail>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
