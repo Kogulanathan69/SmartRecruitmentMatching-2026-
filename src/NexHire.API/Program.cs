@@ -4,6 +4,7 @@ using NexHire.API.Services;
 
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
+using NexHire.Application.Mappings;
 using NexHire.Application.Services;
 
 using NexHire.Infrastructure.Data;
@@ -34,7 +35,9 @@ builder.Services.AddSwaggerGen();
 // ----------------------------------------------------
 //
 var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection");
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' was not found.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -108,6 +111,18 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IConsentContactService,
     ConsentContactService>();
+
+
+//
+// ----------------------------------------------------
+// JOB SEEKER + RESUME MODULE
+// ----------------------------------------------------
+//
+builder.Services.AddScoped<IJobSeekerRepository, JobSeekerRepository>();
+builder.Services.AddScoped<IResumeRepository, ResumeRepository>();
+builder.Services.AddScoped<IJobSeekerService, JobSeekerService>();
+builder.Services.AddScoped<IResumeService, ResumeService>();
+builder.Services.AddAutoMapper(cfg => { }, typeof(JobSeekerMappingProfile).Assembly);
 
 
 //
