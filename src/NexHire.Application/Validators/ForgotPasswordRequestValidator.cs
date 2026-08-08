@@ -1,0 +1,1 @@
+using FluentValidation;using NexHire.Application.DTOs.Auth;namespace NexHire.Application.Validators;public sealed class ForgotPasswordRequestValidator:AbstractValidator<ForgotPasswordRequestDto>{public ForgotPasswordRequestValidator()=>RuleFor(x=>x.Email).NotEmpty().EmailAddress();}

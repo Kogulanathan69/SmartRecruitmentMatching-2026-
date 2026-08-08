@@ -5,7 +5,9 @@ Implemented endpoints:
 - POST `/api/auth/register`
 - POST `/api/auth/login`
 - POST `/api/auth/refresh`
-- POST `/api/auth/revoke` (authorized)
+- POST `/api/auth/forgot-password`
+- POST `/api/auth/reset-password`
+- POST `/api/auth/logout` (authorized)
 - GET `/api/auth/me` (authorized)
 - POST `/api/auth/change-password` (authorized)
 
@@ -56,6 +58,8 @@ Bearer YOUR_ACCESS_TOKEN
 - BCrypt work factor 12
 - JWT role and user-id claims
 - Refresh-token rotation
+- Refresh-token hashing and logout revocation
+- Password-reset token hashing with 30-minute expiry
 - Inactive/suspended account login blocked
 - Duplicate email blocked
 - Admin self-registration blocked
