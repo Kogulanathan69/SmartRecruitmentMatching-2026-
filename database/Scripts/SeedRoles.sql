@@ -1,0 +1,1 @@
+-- TODO: insert default roles (JobSeeker, Employer, Admin)
