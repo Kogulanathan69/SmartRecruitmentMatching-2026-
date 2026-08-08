@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
+using NexHire.API.Extensions;
 
 using NexHire.API.Services;
 
@@ -25,7 +27,7 @@ builder.Services.AddControllers();
 // ----------------------------------------------------
 //
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => options.AddJwtSwagger());
 
 
 //
@@ -40,6 +42,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(connectionString);
 });
+
+builder.Services.AddNexHireAuthentication(builder.Configuration);
 
 
 //
@@ -148,11 +152,12 @@ var app = builder.Build();
 // 13. SWAGGER MIDDLEWARE
 // ----------------------------------------------------
 //
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    options.SwaggerEndpoint("/swagger/v1/swagger.json", "NexHire API v1");
+    options.RoutePrefix = "swagger";
+});
 
 
 //
@@ -170,12 +175,19 @@ app.UseHttpsRedirection();
 //
 app.UseCors("AllowFrontend");
 
+var frontendPath = Path.GetFullPath(Path.Combine(app.Environment.ContentRootPath, "..", "..", "frontend"));
+if (Directory.Exists(frontendPath))
+{
+    app.UseStaticFiles(new StaticFileOptions { FileProvider = new PhysicalFileProvider(frontendPath) });
+}
+
 
 //
 // ----------------------------------------------------
 // 16. AUTHORIZATION
 // ----------------------------------------------------
 //
+app.UseAuthentication();
 app.UseAuthorization();
 
 
@@ -185,6 +197,8 @@ app.UseAuthorization();
 // ----------------------------------------------------
 //
 app.MapControllers();
+
+app.MapGet("/", () => Results.Redirect("/swagger/index.html"));
 
 
 //

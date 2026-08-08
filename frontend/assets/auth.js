@@ -1,0 +1,124 @@
+const API = "/api/Auth/";
+const $ = (id) => document.getElementById(id);
+async function post(path, body, auth = false) {
+  const r = await fetch(API + path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(auth ? { Authorization: `Bearer ${localStorage.accessToken}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  let d = {};
+  try {
+    d = await r.json();
+  } catch {}
+  if (!r.ok)
+    throw new Error(
+      d.message ||
+        Object.values(d.errors || {})
+          .flat()
+          .join(" ") ||
+        `Request failed (${r.status})`,
+    );
+  return d;
+}
+function msg(t, ok = false) {
+  const e = $("message");
+  if (e) {
+    e.textContent = t;
+    e.className = "message " + (ok ? "success" : "error");
+  }
+}
+async function submit(form, job) {
+  const b = form.querySelector("button[type=submit]"),
+    old = b.textContent;
+  b.disabled = true;
+  b.textContent = "Please wait…";
+  msg("");
+  try {
+    await job();
+  } catch (e) {
+    msg(e.message);
+  } finally {
+    b.disabled = false;
+    b.textContent = old;
+  }
+}
+function save(d) {
+  localStorage.accessToken = d.accessToken;
+  localStorage.refreshToken = d.refreshToken;
+  localStorage.role = d.role;
+  localStorage.fullName = d.fullName;
+}
+if ($("loginForm"))
+  $("loginForm").onsubmit = (e) => {
+    e.preventDefault();
+    submit(e.currentTarget, async () => {
+      const d = await post("login", {
+        email: $("email").value,
+        password: $("password").value,
+      });
+      save(d);
+      location = "dashboard.html";
+    });
+  };
+if ($("registerForm"))
+  $("registerForm").onsubmit = (e) => {
+    e.preventDefault();
+    submit(e.currentTarget, async () => {
+      const names = $("fullName").value.trim().split(/\s+/);
+      const d = await post("register", {
+        firstName: names.shift(),
+        lastName: names.join(" ") || "-",
+        email: $("email").value,
+        phoneNumber: $("phone").value || null,
+        role: $("role").value,
+        password: $("password").value,
+        confirmPassword: $("confirmPassword").value,
+      });
+      save(d);
+      location = "dashboard.html";
+    });
+  };
+if ($("forgotForm"))
+  $("forgotForm").onsubmit = (e) => {
+    e.preventDefault();
+    submit(e.currentTarget, async () => {
+      const d = await post("forgot-password", { email: $("email").value });
+      msg(
+        d.resetTokenForDevelopmentOnly
+          ? `Development reset token: ${d.resetTokenForDevelopmentOnly}`
+          : d.message,
+        true,
+      );
+    });
+  };
+if ($("resetForm"))
+  $("resetForm").onsubmit = (e) => {
+    e.preventDefault();
+    submit(e.currentTarget, async () => {
+      const d = await post("reset-password", {
+        token: $("token").value,
+        newPassword: $("newPassword").value,
+        confirmNewPassword: $("confirmPassword").value,
+      });
+      msg(d.message, true);
+    });
+  };
+document.querySelectorAll("[data-toggle]").forEach(
+  (b) =>
+    (b.onclick = () => {
+      const i = $(b.dataset.toggle);
+      i.type = i.type === "password" ? "text" : "password";
+      b.textContent = i.type === "password" ? "Show" : "Hide";
+    }),
+);
+if ($("logoutButton"))
+  $("logoutButton").onclick = async () => {
+    try {
+      await post("logout", { refreshToken: localStorage.refreshToken }, true);
+    } catch {}
+    localStorage.clear();
+    location = "login.html";
+  };

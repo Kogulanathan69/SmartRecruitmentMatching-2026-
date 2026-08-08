@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>NexHire Login</title>
+    <link rel="stylesheet" href="../assets/auth.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="logo">Nex<span>Hire</span></div>
+        <div>
+          <h1>Find the work that fits.</h1>
+          <p>
+            Secure access for Job Seekers and Employers with role-aware
+            workspaces.
+          </p>
+        </div>
+      </section>
+      <section class="zone">
+        <div class="card">
+          <h2>Welcome back</h2>
+          <p class="muted">Sign in to continue.</p>
+          <form id="loginForm">
+            <label
+              >Email
+              <div class="input">
+                <input id="email" type="email" required /></div></label
+            ><label
+              >Password
+              <div class="input">
+                <input id="password" type="password" required /><button
+                  type="button"
+                  class="toggle"
+                  data-toggle="password"
+                >
+                  Show
+                </button>
+              </div></label
+            ><button class="primary" type="submit">Sign in securely</button>
+            <div id="message" class="message"></div>
+          </form>
+          <div class="links">
+            <a href="forgot-password.html">Forgot password?</a
+            ><a href="register.html">Create account</a>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="../assets/auth.js"></script>
+  </body>
+</html>

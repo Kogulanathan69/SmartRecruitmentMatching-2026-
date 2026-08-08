@@ -16,6 +16,10 @@ public class AppDbContext : DbContext
 
     public DbSet<ContactRequest> ContactRequests { get; set; } = null!;
 
+    public DbSet<User> Users { get; set; } = null!;
+
+    public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
