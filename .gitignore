@@ -1,0 +1,11 @@
+bin/
+obj/
+*.user
+.vs/
+*.suo
+*.dll
+*.pdb
+appsettings.Production.json
+
+# Local secrets
+.env
