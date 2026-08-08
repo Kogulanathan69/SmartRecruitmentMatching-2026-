@@ -6,6 +6,7 @@ using NexHire.Application.Interfaces.Services;
 using NexHire.Domain.Entities;
 using NexHire.Domain.Enums;
 
+
 namespace NexHire.Application.Services;
 
 public class CompanyService : ICompanyService
