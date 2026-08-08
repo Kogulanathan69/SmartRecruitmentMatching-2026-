@@ -6,10 +6,11 @@ using NexHire.API.Services;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Mappings;
-using NexHire.Application.Services;
 using NexHire.Application.Matching;
-using NexHire.Infrastructure.Matching;
+using NexHire.Application.Services;
+
 using NexHire.Infrastructure.Data;
+using NexHire.Infrastructure.Matching;
 using NexHire.Infrastructure.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,7 @@ builder.Services.AddControllers();
 // 2. SWAGGER
 // ----------------------------------------------------
 builder.Services.AddEndpointsApiExplorer();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddJwtSwagger();
@@ -44,10 +46,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // ----------------------------------------------------
 // 4. AUTHENTICATION
 // ----------------------------------------------------
-builder.Services.AddNexHireAuthentication(builder.Configuration);
+builder.Services.AddNexHireAuthentication(
+    builder.Configuration);
 
 // ----------------------------------------------------
-// 5. HTTP CONTEXT
+// 5. HTTP CONTEXT / CURRENT USER
 // ----------------------------------------------------
 builder.Services.AddHttpContextAccessor();
 
@@ -77,7 +80,7 @@ builder.Services.AddScoped<
     ApplicationStatusHistoryRepository>();
 
 // ----------------------------------------------------
-// 9. CONTACT REQUEST
+// 9. CONTACT REQUEST REPOSITORY
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IContactRequestRepository,
@@ -96,11 +99,6 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IConsentContactService,
     ConsentContactService>();
-//
-// ----------------------------------------------------
-// MATCHING ENGINE
-// ----------------------------------------------------
-//
 
 // ----------------------------------------------------
 // 12. JOB SEEKER + RESUME MODULE
@@ -124,74 +122,113 @@ builder.Services.AddScoped<
 builder.Services.AddAutoMapper(
     cfg => { },
     typeof(JobSeekerMappingProfile).Assembly);
-// Eligibility rules.
+
+// ----------------------------------------------------
+// 13. MATCHING ENGINE
+// ----------------------------------------------------
+
+// Eligibility
 builder.Services.AddScoped<
     IEligibilityEngine,
     EligibilityEngine>();
 
-// Individual score calculators.
-builder.Services.AddScoped<SkillMatchCalculator>();
-builder.Services.AddScoped<ExperienceMatchCalculator>();
-builder.Services.AddScoped<EducationMatchCalculator>();
-builder.Services.AddScoped<CertificationMatchCalculator>();
-builder.Services.AddScoped<LocationMatchCalculator>();
-builder.Services.AddScoped<ProjectMatchCalculator>();
-builder.Services.AddScoped<ProfileCompletionMatchCalculator>();
+// Individual calculators
+builder.Services.AddScoped<
+    SkillMatchCalculator>();
 
-// Final weighted score calculator.
-builder.Services.AddScoped<MatchScoreCalculator>();
+builder.Services.AddScoped<
+    ExperienceMatchCalculator>();
 
-// Recommendation, ranking and comparison.
+builder.Services.AddScoped<
+    EducationMatchCalculator>();
+
+builder.Services.AddScoped<
+    CertificationMatchCalculator>();
+
+builder.Services.AddScoped<
+    LocationMatchCalculator>();
+
+builder.Services.AddScoped<
+    ProjectMatchCalculator>();
+
+builder.Services.AddScoped<
+    ProfileCompletionMatchCalculator>();
+
+// Final score
+builder.Services.AddScoped<
+    MatchScoreCalculator>();
+
+// Recommendation / ranking / comparison
 builder.Services.AddScoped<
     IRecommendationEngine,
     RecommendationEngine>();
 
-builder.Services.AddScoped<CandidateRankingEngine>();
-builder.Services.AddScoped<CandidateComparisonEngine>();
+builder.Services.AddScoped<
+    CandidateRankingEngine>();
 
-// Main facade used by MatchingService/API.
+builder.Services.AddScoped<
+    CandidateComparisonEngine>();
+
+// Main matching facade
 builder.Services.AddScoped<
     IMatchingEngine,
     MatchingEngine>();
 
-// Application-level matching orchestration service.
+// Matching service
 builder.Services.AddScoped<
     IMatchingService,
     MatchingService>();
 
 // ----------------------------------------------------
-// 13. ADMIN MODULE
+// 14. ADMIN MODULE
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IAdminService,
     AdminService>();
 
 // ----------------------------------------------------
-// 14. AUTHORIZATION
+// 15. COMPANY MODULE
+// ----------------------------------------------------
+builder.Services.AddScoped<
+    ICompanyRepository,
+    CompanyRepository>();
+
+builder.Services.AddScoped<
+    IUnitOfWork,
+    UnitOfWork>();
+
+builder.Services.AddScoped<
+    ICompanyService,
+    CompanyService>();
+
+// ----------------------------------------------------
+// 16. AUTHORIZATION
 // ----------------------------------------------------
 builder.Services.AddAuthorization();
 
 // ----------------------------------------------------
-// 15. CORS
+// 17. CORS
 // ----------------------------------------------------
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
+    options.AddPolicy(
+        "AllowFrontend",
+        policy =>
+        {
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
 });
 
 // ----------------------------------------------------
-// BUILD
+// BUILD APP
 // ----------------------------------------------------
 var app = builder.Build();
 
 // ----------------------------------------------------
-// 16. SWAGGER
+// 18. SWAGGER
 // ----------------------------------------------------
 app.UseSwagger();
 
@@ -205,24 +242,25 @@ app.UseSwaggerUI(options =>
 });
 
 // ----------------------------------------------------
-// 17. HTTPS
+// 19. HTTPS
 // ----------------------------------------------------
 app.UseHttpsRedirection();
 
 // ----------------------------------------------------
-// 18. CORS
+// 20. CORS
 // ----------------------------------------------------
 app.UseCors("AllowFrontend");
 
 // ----------------------------------------------------
-// 19. FRONTEND STATIC FILES
+// 21. FRONTEND STATIC FILES
 // ----------------------------------------------------
-var frontendPath = Path.GetFullPath(
-    Path.Combine(
-        app.Environment.ContentRootPath,
-        "..",
-        "..",
-        "frontend"));
+var frontendPath =
+    Path.GetFullPath(
+        Path.Combine(
+            app.Environment.ContentRootPath,
+            "..",
+            "..",
+            "frontend"));
 
 if (Directory.Exists(frontendPath))
 {
@@ -230,27 +268,29 @@ if (Directory.Exists(frontendPath))
         new StaticFileOptions
         {
             FileProvider =
-                new PhysicalFileProvider(frontendPath)
+                new PhysicalFileProvider(
+                    frontendPath)
         });
 }
 
 // ----------------------------------------------------
-// 20. AUTHENTICATION + AUTHORIZATION
+// 22. AUTHENTICATION + AUTHORIZATION
 // ----------------------------------------------------
 app.UseAuthentication();
 app.UseAuthorization();
 
 // ----------------------------------------------------
-// 21. CONTROLLERS
+// 23. CONTROLLERS
 // ----------------------------------------------------
 app.MapControllers();
 
 // ----------------------------------------------------
-// 22. DEFAULT PAGE
+// 24. DEFAULT PAGE
 // ----------------------------------------------------
 app.MapGet(
     "/",
-    () => Results.Redirect("/auth/login.html"));
+    () => Results.Redirect(
+        "/auth/login.html"));
 
 // ----------------------------------------------------
 // RUN

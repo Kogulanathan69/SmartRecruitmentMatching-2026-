@@ -11,14 +11,15 @@ public class AppDbContext : DbContext
     }
 
     public DbSet<JobApplication> JobApplications { get; set; } = null!;
-
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories { get; set; } = null!;
-
     public DbSet<ContactRequest> ContactRequests { get; set; } = null!;
 
     public DbSet<User> Users { get; set; } = null!;
-
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
+
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
+    public DbSet<CompanyVerification> CompanyVerifications => Set<CompanyVerification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
