@@ -1,0 +1,32 @@
+NEXHIRE MEMBER 5 - RUN READY FULL PROJECT
+==========================================
+
+This package keeps the original full NexHire Web API startup files and integrates
+Member 5 Application_Status + Consent_Contact layered code.
+
+OPEN
+1. Open NexHire.sln in Visual Studio.
+2. In Solution Explorer, right-click NexHire.API.
+3. Choose "Set as Startup Project".
+4. In the top Run dropdown choose "https".
+5. Press F5 or Ctrl+F5.
+6. Swagger launch profile: https://localhost:7119/swagger
+
+IMPORTANT FILES
+- src/NexHire.API/Program.cs
+- src/NexHire.API/Properties/launchSettings.json
+- src/NexHire.API/Controllers/Application_StatusController.cs
+- src/NexHire.API/Controllers/Consent_ContactController.cs
+
+DEVELOPMENT DATABASE
+- Uses LocalDB from appsettings.Development.json:
+  Server=(localdb)\\MSSQLLocalDB;Database=NexHireDb;Trusted_Connection=True;TrustServerCertificate=True;
+
+If HTTPS certificate warning/error occurs, from Developer PowerShell run:
+  dotnet dev-certs https --clean
+  dotnet dev-certs https --trust
+
+Then restart Visual Studio and run again.
+
+If build fails, use View -> Error List and fix the FIRST error first.
+Do not push this full package directly over the team repository without reviewing shared-file changes.
