@@ -24,4 +24,8 @@ public class AppDbContext : DbContext
             typeof(AppDbContext).Assembly
         );
     }
+    // Company
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
+    public DbSet<CompanyVerification> CompanyVerifications => Set<CompanyVerification>();
 }
