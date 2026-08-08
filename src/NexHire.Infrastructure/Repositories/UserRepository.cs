@@ -1,13 +1,104 @@
-using Microsoft.EntityFrameworkCore;using NexHire.Application.Interfaces.Repositories;using NexHire.Domain.Entities;using NexHire.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+using NexHire.Application.Interfaces.Repositories;
+using NexHire.Domain.Entities;
+using NexHire.Infrastructure.Data;
+
 namespace NexHire.Infrastructure.Repositories;
-public sealed class UserRepository(AppDbContext db):IUserRepository
+
+public sealed class UserRepository : IUserRepository
 {
-    public Task<User?>GetByEmailAsync(string email,CancellationToken ct=default)=>db.Users.Include(x=>x.RefreshTokens).SingleOrDefaultAsync(x=>x.NormalizedEmail==email,ct);
-    public Task<User?>GetByIdAsync(Guid id,CancellationToken ct=default)=>db.Users.Include(x=>x.RefreshTokens).SingleOrDefaultAsync(x=>x.Id==id,ct);
-    public Task<User?>GetByResetTokenHashAsync(string hash,CancellationToken ct=default)=>db.Users.Include(x=>x.RefreshTokens).SingleOrDefaultAsync(x=>x.PasswordResetTokenHash==hash,ct);
-    public Task<RefreshToken?>GetRefreshTokenAsync(string hash,CancellationToken ct=default)=>db.RefreshTokens.Include(x=>x.User).ThenInclude(x=>x.RefreshTokens).SingleOrDefaultAsync(x=>x.TokenHash==hash,ct);
-    public Task<bool>EmailExistsAsync(string email,CancellationToken ct=default)=>db.Users.AnyAsync(x=>x.NormalizedEmail==email,ct);
-    public async Task AddUserAsync(User user,CancellationToken ct=default)=>await db.Users.AddAsync(user,ct);
-    public async Task AddRefreshTokenAsync(RefreshToken token,CancellationToken ct=default)=>await db.RefreshTokens.AddAsync(token,ct);
-    public async Task SaveChangesAsync(CancellationToken ct=default)=>await db.SaveChangesAsync(ct);
+    private readonly AppDbContext _dbContext;
+
+    public UserRepository(AppDbContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public Task<User?> GetByEmailAsync(
+        string normalizedEmail,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users
+            .Include(user => user.RefreshTokens)
+            .SingleOrDefaultAsync(
+                user => user.NormalizedEmail == normalizedEmail,
+                cancellationToken);
+    }
+
+    public Task<User?> GetByIdAsync(
+        Guid id,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users
+            .Include(user => user.RefreshTokens)
+            .SingleOrDefaultAsync(
+                user => user.Id == id,
+                cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<User>> GetAllAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Users
+            .AsNoTracking()
+            .OrderByDescending(user => user.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<User?> GetByResetTokenHashAsync(
+        string tokenHash,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users
+            .Include(user => user.RefreshTokens)
+            .SingleOrDefaultAsync(
+                user => user.PasswordResetTokenHash == tokenHash,
+                cancellationToken);
+    }
+
+    public Task<RefreshToken?> GetRefreshTokenAsync(
+        string tokenHash,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.RefreshTokens
+            .Include(token => token.User)
+            .ThenInclude(user => user.RefreshTokens)
+            .SingleOrDefaultAsync(
+                token => token.TokenHash == tokenHash,
+                cancellationToken);
+    }
+
+    public Task<bool> EmailExistsAsync(
+        string normalizedEmail,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Users.AnyAsync(
+            user => user.NormalizedEmail == normalizedEmail,
+            cancellationToken);
+    }
+
+    public async Task AddUserAsync(
+        User user,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.Users.AddAsync(
+            user,
+            cancellationToken);
+    }
+
+    public async Task AddRefreshTokenAsync(
+        RefreshToken refreshToken,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.RefreshTokens.AddAsync(
+            refreshToken,
+            cancellationToken);
+    }
+
+    public async Task SaveChangesAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.SaveChangesAsync(
+            cancellationToken);
+    }
 }

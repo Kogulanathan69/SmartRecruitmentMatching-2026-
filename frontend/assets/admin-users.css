@@ -1,0 +1,169 @@
+:root {
+  font-family: Inter, "Segoe UI", sans-serif;
+  color: #15233d;
+  background: #f2f6fb;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  display: grid;
+  grid-template-columns: 235px 1fr;
+  min-height: 100vh;
+}
+aside {
+  padding: 30px;
+  color: white;
+  background: #092451;
+}
+aside h1 {
+  margin: 0;
+}
+aside span {
+  color: #5de1fa;
+}
+aside p {
+  color: #aec3df;
+}
+nav {
+  display: grid;
+  gap: 8px;
+  margin-top: 40px;
+}
+nav a {
+  padding: 12px;
+  border-radius: 9px;
+  color: #d5e3f6;
+  text-decoration: none;
+}
+.active {
+  background: #ffffff17;
+}
+main {
+  padding: 38px;
+}
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+h2 {
+  font-size: 2rem;
+  margin: 0;
+}
+header p {
+  color: #718096;
+}
+button {
+  padding: 11px 15px;
+  border: 0;
+  border-radius: 9px;
+  background: #1768d5;
+  color: white;
+  font-weight: 750;
+  cursor: pointer;
+}
+.secondary {
+  background: #e6edf6;
+  color: #31506f;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 17px;
+  margin: 28px 0;
+}
+.stats div,
+.panel {
+  padding: 21px;
+  border-radius: 14px;
+  background: white;
+  box-shadow: 0 8px 28px #1738560d;
+}
+.stats b {
+  display: block;
+  font-size: 1.8rem;
+}
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+input,
+select {
+  padding: 11px;
+  border: 1px solid #d5deea;
+  border-radius: 8px;
+  font: inherit;
+}
+.toolbar input {
+  width: min(420px, 70%);
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+th,
+td {
+  text-align: left;
+  padding: 13px;
+  border-bottom: 1px solid #edf1f6;
+}
+.badge {
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #e8f1ff;
+  color: #1859ae;
+  font-size: 0.75rem;
+}
+.actions button {
+  padding: 6px 8px;
+  margin: 2px;
+  font-size: 0.72rem;
+}
+#message {
+  color: #b4233a;
+}
+dialog {
+  border: 0;
+  border-radius: 15px;
+  width: min(520px, 92vw);
+  box-shadow: 0 30px 80px #0004;
+}
+dialog::backdrop {
+  background: #07182f99;
+}
+dialog form {
+  display: grid;
+  gap: 12px;
+  padding: 13px;
+}
+dialog label {
+  display: grid;
+  gap: 5px;
+  font-size: 0.83rem;
+  font-weight: 700;
+}
+dialog footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+@media (max-width: 800px) {
+  body {
+    grid-template-columns: 1fr;
+  }
+  aside {
+    display: none;
+  }
+  main {
+    padding: 20px;
+  }
+  .stats {
+    grid-template-columns: 1fr;
+  }
+  .table {
+    overflow: auto;
+  }
+}
