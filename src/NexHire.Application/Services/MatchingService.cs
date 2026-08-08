@@ -31,6 +31,20 @@ public class MatchingService : IMatchingService
     {
         ArgumentNullException.ThrowIfNull(input);
 
+        if (input.JobId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "JobId is required.",
+                nameof(input.JobId));
+        }
+
+        if (input.JobSeekerProfileId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "JobSeekerProfileId is required.",
+                nameof(input.JobSeekerProfileId));
+        }
+
         // 1. Mandatory eligibility rules.
         var eligibilityResult =
             _matchingEngine.EvaluateEligibility(

@@ -60,6 +60,40 @@ public class MatchingServiceTests
     }
 
     [Fact]
+    public void CalculateMatch_WhenJobIdIsEmpty_ThrowsArgumentException()
+    {
+        var service = CreateService();
+        var input = CreateValidInput();
+
+        input.JobId = Guid.Empty;
+
+        var exception = Assert.Throws<ArgumentException>(
+            () => service.CalculateMatch(input));
+
+        Assert.Contains(
+            "JobId is required.",
+            exception.Message);
+    }
+
+    [Fact]
+    public void CalculateMatch_WhenJobSeekerProfileIdIsEmpty_ThrowsArgumentException()
+    {
+        var service = CreateService();
+        var input = CreateValidInput();
+
+        input.JobSeekerProfileId = Guid.Empty;
+
+        var exception = Assert.Throws<ArgumentException>(
+            () => service.CalculateMatch(input));
+
+        Assert.Contains(
+            "JobSeekerProfileId is required.",
+            exception.Message);
+    }
+
+
+
+    [Fact]
     public void RankCandidates_ReturnsCompetitionRanking()
     {
         var service = CreateService();
