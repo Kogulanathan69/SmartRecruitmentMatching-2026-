@@ -1,3 +1,4 @@
+using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Matching;
 
@@ -5,18 +6,87 @@ namespace NexHire.Application.Services;
 
 /// <summary>
 /// Coordinates the complete candidate-to-job matching process.
-///
-/// This service does not calculate scores by itself.
-/// It asks IMatchingEngine to run the individual
-/// eligibility and scoring components.
 /// </summary>
 public class MatchingService : IMatchingService
 {
     private readonly IMatchingEngine _matchingEngine;
+    private readonly IMatchingRepository? _matchingRepository;
 
-    public MatchingService(IMatchingEngine matchingEngine)
+    /// <summary>
+    /// Constructor kept for existing unit tests and pure
+    /// in-memory matching calculations.
+    /// </summary>
+    public MatchingService(
+        IMatchingEngine matchingEngine)
     {
-        _matchingEngine = matchingEngine;
+        _matchingEngine =
+            matchingEngine
+            ?? throw new ArgumentNullException(
+                nameof(matchingEngine));
+    }
+
+    /// <summary>
+    /// Production constructor used by dependency injection.
+    /// Provides both the matching engine and database repository.
+    /// </summary>
+    public MatchingService(
+        IMatchingEngine matchingEngine,
+        IMatchingRepository matchingRepository)
+    {
+        _matchingEngine =
+            matchingEngine
+            ?? throw new ArgumentNullException(
+                nameof(matchingEngine));
+
+        _matchingRepository =
+            matchingRepository
+            ?? throw new ArgumentNullException(
+                nameof(matchingRepository));
+    }
+
+    /// <summary>
+    /// Loads job and candidate information from the database,
+    /// then performs the complete matching calculation.
+    /// </summary>
+    public async Task<MatchingCalculationResult?>
+        CalculateMatchAsync(
+            Guid jobId,
+            Guid jobSeekerProfileId,
+            CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "JobId is required.",
+                nameof(jobId));
+        }
+
+        if (jobSeekerProfileId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "JobSeekerProfileId is required.",
+                nameof(jobSeekerProfileId));
+        }
+
+        if (_matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching repository is not available.");
+        }
+
+        var input =
+            await _matchingRepository
+                .GetMatchingCalculationInputAsync(
+                    jobId,
+                    jobSeekerProfileId,
+                    cancellationToken);
+
+        if (input is null)
+        {
+            return null;
+        }
+
+        return CalculateMatch(input);
     }
 
     /// <summary>
@@ -45,12 +115,16 @@ public class MatchingService : IMatchingService
                 nameof(input.JobSeekerProfileId));
         }
 
-        // 1. Mandatory eligibility rules.
+        // ----------------------------------------------------
+        // 1. ELIGIBILITY
+        // ----------------------------------------------------
         var eligibilityResult =
             _matchingEngine.EvaluateEligibility(
                 input.Eligibility);
 
-        // 2. Calculate all seven category scores.
+        // ----------------------------------------------------
+        // 2. CATEGORY SCORES
+        // ----------------------------------------------------
         var skillsScore =
             _matchingEngine.CalculateSkills(
                 input.Skills);
@@ -79,65 +153,100 @@ public class MatchingService : IMatchingService
             _matchingEngine.CalculateProfileCompletion(
                 input.ProfileCompletion);
 
-        // 3. Apply the active matching-rule weights.
+        // ----------------------------------------------------
+        // 3. WEIGHTED SCORE
+        // ----------------------------------------------------
         var weightedResult =
             _matchingEngine.CalculateWeightedScore(
                 new MatchScoreCalculationInput
                 {
                     Skills = skillsScore,
-                    Experience = experienceScore,
-                    Education = educationScore,
-                    Certification = certificationScore,
-                    Location = locationScore,
-                    Projects = projectsScore,
+
+                    Experience =
+                        experienceScore,
+
+                    Education =
+                        educationScore,
+
+                    Certification =
+                        certificationScore,
+
+                    Location =
+                        locationScore,
+
+                    Projects =
+                        projectsScore,
+
                     ProfileCompletion =
                         profileCompletionScore,
 
                     SkillsWeight =
                         input.SkillsWeight,
+
                     ExperienceWeight =
                         input.ExperienceWeight,
+
                     EducationWeight =
                         input.EducationWeight,
+
                     CertificationWeight =
                         input.CertificationWeight,
+
                     LocationWeight =
                         input.LocationWeight,
+
                     ProjectsWeight =
                         input.ProjectsWeight,
+
                     ProfileCompletionWeight =
                         input.ProfileCompletionWeight
                 });
 
-        // 4. Recommendation uses both score and eligibility.
+        // ----------------------------------------------------
+        // 4. RECOMMENDATION
+        // ----------------------------------------------------
         var recommendation =
             _matchingEngine.GetRecommendation(
                 weightedResult.TotalScore,
                 eligibilityResult.IsEligible);
 
-        // 5. Build human-readable explanation groups.
-        var strengths = weightedResult.ScoreDetails
-            .Where(detail =>
-                detail.Status == "Strong" ||
-                detail.Status == "Good")
-            .Select(detail => detail.Category)
-            .ToList();
+        // ----------------------------------------------------
+        // 5. STRENGTHS
+        // ----------------------------------------------------
+        var strengths =
+            weightedResult.ScoreDetails
+                .Where(detail =>
+                    detail.Status == "Strong" ||
+                    detail.Status == "Good")
+                .Select(detail =>
+                    detail.Category)
+                .ToList();
 
+        // ----------------------------------------------------
+        // 6. IMPROVEMENT AREAS
+        // ----------------------------------------------------
         var improvementAreas =
             weightedResult.ScoreDetails
                 .Where(detail =>
                     detail.Status == "Partial" ||
                     detail.Status ==
                         "Needs Improvement")
-                .Select(detail => detail.Category)
+                .Select(detail =>
+                    detail.Category)
                 .ToList();
 
-        // 6. Produce a short overall explanation.
-        var summary = BuildSummary(
-            eligibilityResult.IsEligible,
-            weightedResult.TotalScore,
-            recommendation);
+        // ----------------------------------------------------
+        // 7. SUMMARY
+        // ----------------------------------------------------
+        var summary =
+            BuildSummary(
+                eligibilityResult.IsEligible,
+                weightedResult.TotalScore,
+                recommendation);
 
+        // ----------------------------------------------------
+        // 8. FINAL RESULT
+        // ----------------------------------------------------
         return new MatchingCalculationResult
         {
             JobSeekerProfileId =
@@ -186,10 +295,11 @@ public class MatchingService : IMatchingService
     }
 
     /// <summary>
-    /// Delegates candidate ranking to the matching engine.
+    /// Ranks candidates using the matching engine.
     /// </summary>
-    public List<CandidateRankingResult> RankCandidates(
-        IEnumerable<CandidateRankingInput> candidates)
+    public List<CandidateRankingResult>
+        RankCandidates(
+            IEnumerable<CandidateRankingInput> candidates)
     {
         ArgumentNullException.ThrowIfNull(candidates);
 
@@ -198,10 +308,11 @@ public class MatchingService : IMatchingService
     }
 
     /// <summary>
-    /// Delegates candidate comparison to the matching engine.
+    /// Compares between two and four candidates.
     /// </summary>
-    public List<CandidateComparisonResult> CompareCandidates(
-        IEnumerable<CandidateComparisonInput> candidates)
+    public List<CandidateComparisonResult>
+        CompareCandidates(
+            IEnumerable<CandidateComparisonInput> candidates)
     {
         ArgumentNullException.ThrowIfNull(candidates);
 
@@ -209,6 +320,10 @@ public class MatchingService : IMatchingService
             candidates);
     }
 
+    /// <summary>
+    /// Creates a short readable explanation
+    /// of the candidate match.
+    /// </summary>
     private static string BuildSummary(
         bool isEligible,
         decimal totalScore,

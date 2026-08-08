@@ -18,6 +18,18 @@ public class Job
 
     public string EducationRequirement { get; set; } = string.Empty;
 
+    // Ordered education level used by the deterministic matching engine.
+    // 0 means the job has no minimum education requirement.
+    public int MinimumEducationLevel { get; set; }
+
+    // Optional certification names required/preferred for this vacancy.
+    // Stored as a simple delimited value for the current university-project scope.
+    public string? RequiredCertifications { get; set; }
+
+    // Number of relevant projects expected for a full Projects category score.
+    // 0 means the vacancy has no project-experience target.
+    public int TargetProjectCount { get; set; }
+
     public JobStatus Status { get; set; } = JobStatus.Draft;
 
     public string EmploymentType { get; set; } = string.Empty;

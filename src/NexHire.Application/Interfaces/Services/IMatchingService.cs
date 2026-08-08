@@ -19,6 +19,16 @@ public interface IMatchingService
         MatchingCalculationInput input);
 
     /// <summary>
+    /// Loads the candidate and job data from the database,
+    /// then calculates the complete match.
+    /// Returns null when the job or candidate profile is not found.
+    /// </summary>
+    Task<MatchingCalculationResult?> CalculateMatchAsync(
+        Guid jobId,
+        Guid jobSeekerProfileId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Ranks candidate applications using
     /// competition ranking such as 1, 2, 2, 4.
     /// </summary>

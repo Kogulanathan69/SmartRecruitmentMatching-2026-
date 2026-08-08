@@ -169,10 +169,17 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     CandidateComparisonEngine>();
 
+
+
 // Main matching facade
 builder.Services.AddScoped<
     IMatchingEngine,
     MatchingEngine>();
+
+// Matching repository
+builder.Services.AddScoped<
+    IMatchingRepository,
+    MatchingRepository>();
 
 // Matching service
 builder.Services.AddScoped<

@@ -26,6 +26,15 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
         builder.Property(j => j.EducationRequirement)
             .HasMaxLength(500);
 
+        builder.Property(j => j.MinimumEducationLevel)
+    .IsRequired();
+
+        builder.Property(j => j.RequiredCertifications)
+            .HasMaxLength(1000);
+
+        builder.Property(j => j.TargetProjectCount)
+            .IsRequired();
+
         builder.Property(j => j.EmploymentType)
             .IsRequired()
             .HasMaxLength(50);
