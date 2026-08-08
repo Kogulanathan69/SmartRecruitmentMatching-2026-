@@ -16,4 +16,5 @@ public sealed class User
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
     public string FullName => $"{FirstName} {LastName}".Trim();
+    public JobSeekerProfile? JobSeekerProfile { get; set; }
 }

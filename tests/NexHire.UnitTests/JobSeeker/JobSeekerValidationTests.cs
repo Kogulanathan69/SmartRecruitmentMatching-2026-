@@ -1,3 +1,4 @@
+using Xunit;
 using FluentAssertions;
 using NexHire.Application.DTOs.JobSeeker;
 using NexHire.Application.Validators.JobSeeker;

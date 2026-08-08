@@ -1,3 +1,4 @@
+using Xunit;
 using FluentAssertions;
 using NexHire.Application.DTOs.Resume;
 using NexHire.Application.Validators.Resume;
