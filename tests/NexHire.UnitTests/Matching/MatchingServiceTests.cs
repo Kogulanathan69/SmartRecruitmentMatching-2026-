@@ -92,6 +92,33 @@ public class MatchingServiceTests
     }
 
 
+    [Fact]
+    public void CalculateMatch_WhenInputIsNull_ThrowsArgumentNullException()
+    {
+        var service = CreateService();
+
+        Assert.Throws<ArgumentNullException>(
+            () => service.CalculateMatch(null!));
+    }
+
+    [Fact]
+    public void RankCandidates_WhenCandidatesAreNull_ThrowsArgumentNullException()
+    {
+        var service = CreateService();
+
+        Assert.Throws<ArgumentNullException>(
+            () => service.RankCandidates(null!));
+    }
+
+    [Fact]
+    public void CompareCandidates_WhenCandidatesAreNull_ThrowsArgumentNullException()
+    {
+        var service = CreateService();
+
+        Assert.Throws<ArgumentNullException>(
+            () => service.CompareCandidates(null!));
+    }
+
 
     [Fact]
     public void RankCandidates_ReturnsCompetitionRanking()
