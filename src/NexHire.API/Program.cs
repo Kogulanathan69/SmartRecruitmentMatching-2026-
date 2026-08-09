@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using NexHire.API.Extensions;
@@ -239,6 +239,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     INotificationService,
     NotificationService>();
+
+builder.Services.AddScoped<
+    IDashboardRepository,
+    DashboardRepository>();
+
+builder.Services.AddScoped<
+    IDashboardService,
+    DashboardService>();
 // ----------------------------------------------------
 // 16. AUTHORIZATION
 // ----------------------------------------------------

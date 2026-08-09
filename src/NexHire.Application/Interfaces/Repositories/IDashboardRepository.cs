@@ -1,8 +1,8 @@
 ﻿using NexHire.Application.DTOs.Dashboard;
 
-namespace NexHire.Application.Interfaces.Services;
+namespace NexHire.Application.Interfaces.Repositories;
 
-public interface IDashboardService
+public interface IDashboardRepository
 {
     Task<JobSeekerDashboardDto> GetJobSeekerAsync(
         Guid userId,
