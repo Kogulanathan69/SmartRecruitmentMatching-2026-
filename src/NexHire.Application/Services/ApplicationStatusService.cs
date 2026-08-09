@@ -1,4 +1,4 @@
-﻿using NexHire.Application.DTOs.ApplicationStatus;
+using NexHire.Application.DTOs.ApplicationStatus;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Domain.Entities;
@@ -11,15 +11,18 @@ public class ApplicationStatusService : IApplicationStatusService
     private readonly IJobApplicationRepository _applicationRepository;
     private readonly IApplicationStatusHistoryRepository _historyRepository;
     private readonly IJobRepository _jobRepository;
+    private readonly INotificationService _notificationService;
 
     public ApplicationStatusService(
         IJobApplicationRepository applicationRepository,
         IApplicationStatusHistoryRepository historyRepository,
-        IJobRepository jobRepository)
+        IJobRepository jobRepository,
+        INotificationService notificationService)
     {
         _applicationRepository = applicationRepository;
         _historyRepository = historyRepository;
         _jobRepository = jobRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<ApplicationStatusResultDto> UpdateByEmployerAsync(
@@ -115,6 +118,13 @@ public class ApplicationStatusService : IApplicationStatusService
 
         await _applicationRepository.SaveChangesAsync();
 
+        await _notificationService.CreateAsync(
+            application.CandidateId,
+            "ApplicationStatusChanged",
+            "Application status updated",
+            $"Your application status is now {newStatus}.",
+            application.JobApplicationId);
+
         return new ApplicationStatusResultDto
         {
             ApplicationId = application.JobApplicationId,
@@ -183,6 +193,20 @@ public class ApplicationStatusService : IApplicationStatusService
         _applicationRepository.Update(application);
 
         await _applicationRepository.SaveChangesAsync();
+
+        var job =
+            await _jobRepository.GetByIdAsync(
+                application.VacancyId);
+
+        if (job is not null)
+        {
+            await _notificationService.CreateAsync(
+                job.Company.CreatedByUserId,
+                "ApplicationWithdrawn",
+                "Candidate withdrew application",
+                $"A candidate withdrew from {job.Title}.",
+                application.JobApplicationId);
+        }
 
         return new ApplicationStatusResultDto
         {

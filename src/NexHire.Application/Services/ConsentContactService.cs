@@ -1,4 +1,4 @@
-﻿using NexHire.Application.DTOs.ConsentContact;
+using NexHire.Application.DTOs.ConsentContact;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Domain.Entities;
@@ -12,17 +12,20 @@ public class ConsentContactService : IConsentContactService
     private readonly IJobApplicationRepository _applicationRepository;
     private readonly IJobRepository _jobRepository;
     private readonly IUserRepository _userRepository;
+    private readonly INotificationService _notificationService;
 
     public ConsentContactService(
         IContactRequestRepository contactRepository,
         IJobApplicationRepository applicationRepository,
         IJobRepository jobRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        INotificationService notificationService)
     {
         _contactRepository = contactRepository;
         _applicationRepository = applicationRepository;
         _jobRepository = jobRepository;
         _userRepository = userRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<ContactRequestResponseDto> CreateRequestAsync(
@@ -92,6 +95,13 @@ public class ConsentContactService : IConsentContactService
         await _contactRepository.AddAsync(request);
 
         await _applicationRepository.SaveChangesAsync();
+
+        await _notificationService.CreateAsync(
+            application.CandidateId,
+            "ContactRequest",
+            "Employer requested contact permission",
+            $"{ownedJob.Company.Name} would like permission to contact you about {ownedJob.Title}.",
+            request.Id);
 
         return await MapRequestAsync(
             request,
@@ -224,6 +234,13 @@ public class ConsentContactService : IConsentContactService
         _contactRepository.Update(request);
 
         await _applicationRepository.SaveChangesAsync();
+
+        await _notificationService.CreateAsync(
+            request.EmployerUserId,
+            "ContactRequestDecision",
+            "Contact request decision",
+            $"Candidate {normalizedDecision.ToString().ToLowerInvariant()} your contact request.",
+            request.Id);
 
         return await MapRequestAsync(
             request,

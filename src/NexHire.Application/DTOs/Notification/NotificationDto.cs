@@ -1,12 +1,8 @@
-﻿namespace NexHire.Domain.Entities;
+﻿namespace NexHire.Application.DTOs.Notification;
 
-public class Notification
+public class NotificationDto
 {
-    public Guid Id { get; set; } = Guid.NewGuid();
-
-    public Guid UserId { get; set; }
-
-    public User User { get; set; } = null!;
+    public Guid Id { get; set; }
 
     public string Type { get; set; } = string.Empty;
 
@@ -18,7 +14,7 @@ public class Notification
 
     public bool IsRead { get; set; }
 
-    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAtUtc { get; set; }
 
     public DateTime? ReadAtUtc { get; set; }
 }

@@ -231,6 +231,14 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IApplicationService,
     ApplicationService>();
+
+builder.Services.AddScoped<
+    INotificationRepository,
+    NotificationRepository>();
+
+builder.Services.AddScoped<
+    INotificationService,
+    NotificationService>();
 // ----------------------------------------------------
 // 16. AUTHORIZATION
 // ----------------------------------------------------

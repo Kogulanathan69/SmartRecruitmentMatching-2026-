@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NexHire.Domain.Entities;
 
 namespace NexHire.Infrastructure.Data;
@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<JobApplication> JobApplications { get; set; } = null!;
     public DbSet<ApplicationStatusHistory> ApplicationStatusHistories { get; set; } = null!;
     public DbSet<ContactRequest> ContactRequests { get; set; } = null!;
+    public DbSet<Notification> Notifications { get; set; } = null!;
 
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<RefreshToken> RefreshTokens { get; set; } = null!;
