@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
@@ -271,11 +273,44 @@ builder.Services.AddCors(options =>
 // ----------------------------------------------------
 // BUILD APP
 // ----------------------------------------------------
+
+// ----------------------------------------------------
+// NEXHIRE FINAL HARDENING SERVICES
+// ----------------------------------------------------
+
+// Standard safe error responses for unexpected failures.
+builder.Services.AddProblemDetails();
+
+// Protect authentication endpoints from excessive requests.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode =
+        StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy(
+        "auth",
+        httpContext =>
+            RateLimitPartition.GetFixedWindowLimiter(
+                partitionKey:
+                    httpContext.Connection.RemoteIpAddress?.ToString()
+                    ?? "unknown",
+
+                factory: _ =>
+                    new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 20,
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                        AutoReplenishment = true
+                    }));
+});
 var app = builder.Build();
 
 // ----------------------------------------------------
 // 18. SWAGGER
 // ----------------------------------------------------
+app.UseExceptionHandler();
+
 app.UseSwagger();
 
 app.UseSwaggerUI(options =>
@@ -290,6 +325,41 @@ app.UseSwaggerUI(options =>
 // ----------------------------------------------------
 // 19. HTTPS
 // ----------------------------------------------------
+
+// ----------------------------------------------------
+// CORRELATION ID + SECURITY HEADERS
+// ----------------------------------------------------
+app.Use(async (context, next) =>
+{
+    var incomingCorrelationId =
+        context.Request.Headers["X-Correlation-ID"]
+            .FirstOrDefault();
+
+    var correlationId =
+        string.IsNullOrWhiteSpace(incomingCorrelationId)
+            ? Guid.NewGuid().ToString("N")
+            : incomingCorrelationId;
+
+    context.Items["CorrelationId"] =
+        correlationId;
+
+    context.Response.Headers["X-Correlation-ID"] =
+        correlationId;
+
+    context.Response.Headers["X-Content-Type-Options"] =
+        "nosniff";
+
+    context.Response.Headers["X-Frame-Options"] =
+        "DENY";
+
+    context.Response.Headers["Referrer-Policy"] =
+        "strict-origin-when-cross-origin";
+
+    context.Response.Headers["Permissions-Policy"] =
+        "camera=(), microphone=(), geolocation=()";
+
+    await next();
+});
 app.UseHttpsRedirection();
 
 // ----------------------------------------------------
@@ -322,6 +392,8 @@ if (Directory.Exists(frontendPath))
 // ----------------------------------------------------
 // 22. AUTHENTICATION + AUTHORIZATION
 // ----------------------------------------------------
+app.UseRateLimiter();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -329,6 +401,67 @@ app.UseAuthorization();
 // 23. CONTROLLERS
 // ----------------------------------------------------
 app.MapControllers();
+// ----------------------------------------------------
+// HEALTH CHECK ENDPOINTS
+// ----------------------------------------------------
+
+app.MapGet(
+    "/health/live",
+    () =>
+        Results.Ok(
+            new
+            {
+                status = "live",
+                service = "NexHire.API",
+                utc = DateTime.UtcNow
+            }))
+    .AllowAnonymous();
+
+app.MapGet(
+    "/health/ready",
+    async (
+        AppDbContext db,
+        CancellationToken cancellationToken) =>
+    {
+        try
+        {
+            var connected =
+                await db.Database.CanConnectAsync(
+                    cancellationToken);
+
+            if (!connected)
+            {
+                return Results.Json(
+                    new
+                    {
+                        status = "not-ready",
+                        database = "unreachable"
+                    },
+                    statusCode:
+                        StatusCodes.Status503ServiceUnavailable);
+            }
+
+            return Results.Ok(
+                new
+                {
+                    status = "ready",
+                    database = "reachable"
+                });
+        }
+        catch
+        {
+            return Results.Json(
+                new
+                {
+                    status = "not-ready",
+                    database = "unreachable"
+                },
+                statusCode:
+                    StatusCodes.Status503ServiceUnavailable);
+        }
+    })
+    .AllowAnonymous();
+
 
 // ----------------------------------------------------
 // 24. DEFAULT PAGE

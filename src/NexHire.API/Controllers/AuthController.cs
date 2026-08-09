@@ -1,6 +1,8 @@
+using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using NexHire.Application.DTOs.Auth;using NexHire.Application.Interfaces.Services;
 namespace NexHire.API.Controllers;
-[ApiController,Route("api/[controller]")]public sealed class AuthController(IAuthService auth):ControllerBase
+[ApiController,Route("api/[controller]")]
+[EnableRateLimiting("auth")]public sealed class AuthController(IAuthService auth):ControllerBase
 {
  [AllowAnonymous,HttpPost("register")]public async Task<IActionResult>Register(RegisterRequestDto d,CancellationToken ct){try{return Ok(await auth.RegisterAsync(d,ct));}catch(ArgumentException x){return BadRequest(new{message=x.Message});}catch(InvalidOperationException x){return Conflict(new{message=x.Message});}}
  [AllowAnonymous,HttpPost("login")]public async Task<IActionResult>Login(LoginRequestDto d,CancellationToken ct)=>await auth.LoginAsync(d,ct) is{}r?Ok(r):Unauthorized(new{message="Invalid email or password."});
