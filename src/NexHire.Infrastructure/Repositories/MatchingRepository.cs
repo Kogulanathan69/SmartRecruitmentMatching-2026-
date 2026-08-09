@@ -422,6 +422,155 @@ public class MatchingRepository : IMatchingRepository
         return rankingInputs;
     }
 
+    public async Task<IReadOnlyList<CandidateComparisonInput>>
+        GetComparisonInputsForJobAsync(
+            Guid jobId,
+            IReadOnlyCollection<Guid> applicationIds,
+            CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty ||
+            applicationIds.Count == 0)
+        {
+            return Array.Empty<CandidateComparisonInput>();
+        }
+
+        var requestedIds =
+            applicationIds
+                .Distinct()
+                .ToList();
+
+        // Only applications belonging to this job and still
+        // active in the recruitment process can be compared.
+        var applications =
+            await (
+                from application in
+                    _context.JobApplications.AsNoTracking()
+
+                join profile in
+                    _context.JobSeekerProfiles.AsNoTracking()
+
+                    on application.CandidateId
+                    equals profile.UserId
+
+                where application.VacancyId == jobId
+                      && requestedIds.Contains(
+                          application.JobApplicationId)
+                      && application.Status !=
+                         ApplicationStatus.Rejected.ToString()
+                      && application.Status !=
+                         ApplicationStatus.Withdrawn.ToString()
+
+                select new
+                {
+                    ApplicationId =
+                        application.JobApplicationId,
+
+                    JobSeekerProfileId =
+                        profile.Id
+                })
+                .ToListAsync(cancellationToken);
+
+        if (applications.Count == 0)
+        {
+            return Array.Empty<CandidateComparisonInput>();
+        }
+
+        var profileIds =
+            applications
+                .Select(application =>
+                    application.JobSeekerProfileId)
+                .Distinct()
+                .ToList();
+
+        // Comparison uses the latest saved calculation
+        // for every selected candidate.
+        var savedResults =
+            await _context.MatchResults
+                .AsNoTracking()
+                .Include(result =>
+                    result.ScoreDetails)
+                .Where(result =>
+                    result.JobId == jobId &&
+                    profileIds.Contains(
+                        result.JobSeekerProfileId))
+                .ToListAsync(cancellationToken);
+
+        var latestByProfile =
+            savedResults
+                .GroupBy(result =>
+                    result.JobSeekerProfileId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .OrderByDescending(result =>
+                            result.CalculatedAtUtc)
+                        .ThenByDescending(result =>
+                            result.Id)
+                        .First());
+
+        var comparisonInputs =
+            new List<CandidateComparisonInput>();
+
+        foreach (var application in applications)
+        {
+            if (!latestByProfile.TryGetValue(
+                    application.JobSeekerProfileId,
+                    out var latest))
+            {
+                continue;
+            }
+
+            comparisonInputs.Add(
+                new CandidateComparisonInput
+                {
+                    ApplicationId =
+                        application.ApplicationId,
+
+                    JobSeekerProfileId =
+                        application.JobSeekerProfileId,
+
+                    TotalScore =
+                        latest.TotalScore,
+
+                    IsEligible =
+                        latest.IsEligible,
+
+                    Recommendation =
+                        latest.Recommendation,
+
+                    ScoreDetails =
+                        latest.ScoreDetails
+                            .Select(detail =>
+                                new WeightedCategoryScoreResult
+                                {
+                                    Category =
+                                        detail.Category,
+
+                                    RawScore =
+                                        detail.RawScore,
+
+                                    Weight =
+                                        detail.Weight,
+
+                                    WeightedPoints =
+                                        detail.WeightedPoints,
+
+                                    MaximumWeightedPoints =
+                                        detail.MaximumWeightedPoints,
+
+                                    Status =
+                                        detail.Status,
+
+                                    Explanation =
+                                        detail.Explanation
+                                })
+                            .ToList()
+                });
+        }
+
+        return comparisonInputs;
+    }
+
     private static List<string> ParseDelimitedValues(
         string? value)
     {

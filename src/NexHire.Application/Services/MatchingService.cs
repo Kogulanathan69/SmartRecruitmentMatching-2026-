@@ -383,6 +383,70 @@ public class MatchingService : IMatchingService
     }
 
     /// <summary>
+    /// Compares between two and four selected active
+    /// applications using their latest saved match results.
+    /// </summary>
+    public async Task<IReadOnlyList<CandidateComparisonResult>>
+        CompareCandidatesForJobAsync(
+            Guid jobId,
+            IReadOnlyCollection<Guid> applicationIds,
+            CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "JobId is required.",
+                nameof(jobId));
+        }
+
+        ArgumentNullException.ThrowIfNull(
+            applicationIds);
+
+        if (applicationIds.Count < 2 ||
+            applicationIds.Count > 4)
+        {
+            throw new ArgumentException(
+                "Between 2 and 4 applications must be selected.",
+                nameof(applicationIds));
+        }
+
+        var uniqueIds =
+            applicationIds
+                .Distinct()
+                .ToList();
+
+        if (uniqueIds.Count != applicationIds.Count)
+        {
+            throw new ArgumentException(
+                "The same application cannot be included more than once.",
+                nameof(applicationIds));
+        }
+
+        if (_matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching repository is not available.");
+        }
+
+        var inputs =
+            await _matchingRepository
+                .GetComparisonInputsForJobAsync(
+                    jobId,
+                    uniqueIds,
+                    cancellationToken);
+
+        if (inputs.Count != uniqueIds.Count)
+        {
+            throw new InvalidOperationException(
+                "One or more selected applications could not be compared. " +
+                "They may be rejected, withdrawn, belong to another job, " +
+                "or may not have a saved matching result.");
+        }
+
+        return CompareCandidates(inputs);
+    }
+
+    /// <summary>
     /// Compares between two and four candidates.
     /// </summary>
     public List<CandidateComparisonResult>

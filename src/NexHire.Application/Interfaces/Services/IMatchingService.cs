@@ -1,4 +1,4 @@
-﻿using NexHire.Application.Matching;
+using NexHire.Application.Matching;
 
 namespace NexHire.Application.Interfaces.Services;
 
@@ -21,6 +21,12 @@ public interface IMatchingService
         GetRankedCandidatesForJobAsync(
             Guid jobId,
             int top = 10,
+            CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<CandidateComparisonResult>>
+        CompareCandidatesForJobAsync(
+            Guid jobId,
+            IReadOnlyCollection<Guid> applicationIds,
             CancellationToken cancellationToken = default);
 
     List<CandidateRankingResult> RankCandidates(

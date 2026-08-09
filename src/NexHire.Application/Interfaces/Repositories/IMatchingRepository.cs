@@ -1,4 +1,4 @@
-﻿using NexHire.Application.Matching;
+using NexHire.Application.Matching;
 
 namespace NexHire.Application.Interfaces.Repositories;
 
@@ -16,5 +16,11 @@ public interface IMatchingRepository
     Task<IReadOnlyList<CandidateRankingInput>>
         GetRankingInputsForJobAsync(
             Guid jobId,
+            CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<CandidateComparisonInput>>
+        GetComparisonInputsForJobAsync(
+            Guid jobId,
+            IReadOnlyCollection<Guid> applicationIds,
             CancellationToken cancellationToken = default);
 }

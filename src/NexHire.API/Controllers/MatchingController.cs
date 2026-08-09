@@ -1,5 +1,6 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using NexHire.Application.DTOs.Matching;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Mappings;
 
@@ -131,6 +132,39 @@ public class MatchingController : ControllerBase
                         cancellationToken);
 
             return Ok(rankings);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(
+                new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(
+                new { message = exception.Message });
+        }
+    }
+
+    /// <summary>
+    /// Compares two to four selected candidate applications
+    /// using their latest saved matching results.
+    /// </summary>
+    [HttpPost("jobs/{jobId:guid}/compare")]
+    public async Task<IActionResult> CompareSelectedCandidates(
+        Guid jobId,
+        [FromBody] CompareCandidatesRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var result =
+                await _matchingService
+                    .CompareCandidatesForJobAsync(
+                        jobId,
+                        request.ApplicationIds,
+                        cancellationToken);
+
+            return Ok(result);
         }
         catch (ArgumentException exception)
         {
