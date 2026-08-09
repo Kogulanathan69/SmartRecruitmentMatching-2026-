@@ -1,4 +1,5 @@
 using NexHire.Application.Matching;
+using NexHire.Domain.Entities;
 
 namespace NexHire.Application.Interfaces.Repositories;
 
@@ -33,4 +34,11 @@ public interface IMatchingRepository
         GetApplicationMatchingTargetAsync(
             Guid applicationId,
             CancellationToken cancellationToken = default);
+
+    Task<MatchingRule?> GetActiveMatchingRuleAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<MatchingRule> ReplaceActiveMatchingRuleAsync(
+        MatchingRule rule,
+        CancellationToken cancellationToken = default);
 }

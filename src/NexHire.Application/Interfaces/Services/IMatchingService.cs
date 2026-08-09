@@ -33,6 +33,14 @@ public interface IMatchingService
     Task<ExplainMatchDto?> ExplainMatchAsync(
         Guid applicationId,
         CancellationToken cancellationToken = default);
+
+    Task<MatchingRuleDto?> GetActiveMatchingRuleAsync(
+        CancellationToken cancellationToken = default);
+
+    Task<MatchingRuleDto> ReplaceActiveMatchingRuleAsync(
+        UpdateMatchingRuleRequestDto request,
+        CancellationToken cancellationToken = default);
+
     List<CandidateRankingResult> RankCandidates(
         IEnumerable<CandidateRankingInput> candidates);
 

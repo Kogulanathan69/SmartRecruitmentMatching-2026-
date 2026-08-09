@@ -1,9 +1,7 @@
 namespace NexHire.Application.DTOs.Matching;
 
-public sealed class MatchingRuleDto
+public sealed class UpdateMatchingRuleRequestDto
 {
-    public Guid Id { get; set; }
-
     public decimal SkillsWeight { get; set; }
 
     public decimal ExperienceWeight { get; set; }
@@ -17,10 +15,4 @@ public sealed class MatchingRuleDto
     public decimal ProjectsWeight { get; set; }
 
     public decimal ProfileCompletionWeight { get; set; }
-
-    public decimal TotalWeight { get; set; }
-
-    public bool IsActive { get; set; }
-
-    public DateTime CreatedAtUtc { get; set; }
 }

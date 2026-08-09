@@ -571,6 +571,69 @@ public class MatchingRepository : IMatchingRepository
         return comparisonInputs;
     }
 
+    public async Task<MatchingRule?> GetActiveMatchingRuleAsync(
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.MatchingRules
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                rule => rule.IsActive,
+                cancellationToken);
+    }
+
+    public async Task<MatchingRule> ReplaceActiveMatchingRuleAsync(
+        MatchingRule rule,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(rule);
+
+        await using var transaction =
+            await _context.Database.BeginTransactionAsync(
+                cancellationToken);
+
+        try
+        {
+            var activeRules =
+                await _context.MatchingRules
+                    .Where(existing => existing.IsActive)
+                    .ToListAsync(cancellationToken);
+
+            foreach (var activeRule in activeRules)
+            {
+                activeRule.IsActive = false;
+            }
+
+            if (activeRules.Count > 0)
+            {
+                // Save deactivation first because the database
+                // permits only one IsActive = 1 row.
+                await _context.SaveChangesAsync(
+                    cancellationToken);
+            }
+
+            rule.IsActive = true;
+
+            await _context.MatchingRules.AddAsync(
+                rule,
+                cancellationToken);
+
+            await _context.SaveChangesAsync(
+                cancellationToken);
+
+            await transaction.CommitAsync(
+                cancellationToken);
+
+            return rule;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(
+                cancellationToken);
+
+            throw;
+        }
+    }
+
     public async Task<bool> EmployerOwnsJobAsync(
         Guid jobId,
         Guid employerUserId,

@@ -528,6 +528,180 @@ public class MatchingService : IMatchingService
     }
 
     /// <summary>
+    /// Returns the currently active matching weight configuration.
+    /// </summary>
+    public async Task<MatchingRuleDto?> GetActiveMatchingRuleAsync(
+        CancellationToken cancellationToken = default)
+    {
+        if (_matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching repository is not available.");
+        }
+
+        var rule =
+            await _matchingRepository
+                .GetActiveMatchingRuleAsync(
+                    cancellationToken);
+
+        return rule is null
+            ? null
+            : MapMatchingRule(rule);
+    }
+
+    /// <summary>
+    /// Replaces the active seven-category matching rule.
+    /// No production default weights are invented.
+    /// </summary>
+    public async Task<MatchingRuleDto> ReplaceActiveMatchingRuleAsync(
+        UpdateMatchingRuleRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        ValidateWeight(
+            nameof(request.SkillsWeight),
+            request.SkillsWeight);
+
+        ValidateWeight(
+            nameof(request.ExperienceWeight),
+            request.ExperienceWeight);
+
+        ValidateWeight(
+            nameof(request.EducationWeight),
+            request.EducationWeight);
+
+        ValidateWeight(
+            nameof(request.CertificationWeight),
+            request.CertificationWeight);
+
+        ValidateWeight(
+            nameof(request.LocationWeight),
+            request.LocationWeight);
+
+        ValidateWeight(
+            nameof(request.ProjectsWeight),
+            request.ProjectsWeight);
+
+        ValidateWeight(
+            nameof(request.ProfileCompletionWeight),
+            request.ProfileCompletionWeight);
+
+        var total =
+            request.SkillsWeight +
+            request.ExperienceWeight +
+            request.EducationWeight +
+            request.CertificationWeight +
+            request.LocationWeight +
+            request.ProjectsWeight +
+            request.ProfileCompletionWeight;
+
+        if (total != 100m)
+        {
+            throw new ArgumentException(
+                $"Matching rule weights must total exactly 100. " +
+                $"Current total: {total:0.##}.");
+        }
+
+        if (_matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching repository is not available.");
+        }
+
+        var rule =
+            new NexHire.Domain.Entities.MatchingRule
+            {
+                Id = Guid.NewGuid(),
+
+                SkillsWeight =
+                    request.SkillsWeight,
+
+                ExperienceWeight =
+                    request.ExperienceWeight,
+
+                EducationWeight =
+                    request.EducationWeight,
+
+                CertificationWeight =
+                    request.CertificationWeight,
+
+                LocationWeight =
+                    request.LocationWeight,
+
+                ProjectsWeight =
+                    request.ProjectsWeight,
+
+                ProfileCompletionWeight =
+                    request.ProfileCompletionWeight,
+
+                IsActive = true,
+
+                CreatedAtUtc =
+                    DateTime.UtcNow
+            };
+
+        var saved =
+            await _matchingRepository
+                .ReplaceActiveMatchingRuleAsync(
+                    rule,
+                    cancellationToken);
+
+        return MapMatchingRule(saved);
+    }
+
+    private static MatchingRuleDto MapMatchingRule(
+        NexHire.Domain.Entities.MatchingRule rule)
+    {
+        return new MatchingRuleDto
+        {
+            Id = rule.Id,
+
+            SkillsWeight =
+                rule.SkillsWeight,
+
+            ExperienceWeight =
+                rule.ExperienceWeight,
+
+            EducationWeight =
+                rule.EducationWeight,
+
+            CertificationWeight =
+                rule.CertificationWeight,
+
+            LocationWeight =
+                rule.LocationWeight,
+
+            ProjectsWeight =
+                rule.ProjectsWeight,
+
+            ProfileCompletionWeight =
+                rule.ProfileCompletionWeight,
+
+            TotalWeight =
+                rule.TotalWeight,
+
+            IsActive =
+                rule.IsActive,
+
+            CreatedAtUtc =
+                rule.CreatedAtUtc
+        };
+    }
+
+    private static void ValidateWeight(
+        string name,
+        decimal value)
+    {
+        if (value < 0m || value > 100m)
+        {
+            throw new ArgumentOutOfRangeException(
+                name,
+                "Matching weights must be between 0 and 100.");
+        }
+    }
+
+    /// <summary>
     /// Admins may access every job. Employers may only access
     /// matching data for jobs owned by their own company.
     /// </summary>
