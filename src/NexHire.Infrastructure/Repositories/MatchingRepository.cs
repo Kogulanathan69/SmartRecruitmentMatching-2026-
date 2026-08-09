@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Matching;
 using NexHire.Domain.Entities;
@@ -302,6 +302,124 @@ public class MatchingRepository : IMatchingRepository
 
         await _context.SaveChangesAsync(
             cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<CandidateRankingInput>>
+        GetRankingInputsForJobAsync(
+            Guid jobId,
+            CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty)
+        {
+            return Array.Empty<CandidateRankingInput>();
+        }
+
+        // Only active applications are ranked.
+        // Rejected and withdrawn applications are excluded.
+        var applications =
+            await (
+                from application in
+                    _context.JobApplications.AsNoTracking()
+
+                join profile in
+                    _context.JobSeekerProfiles.AsNoTracking()
+
+                    on application.CandidateId
+                    equals profile.UserId
+
+                where application.VacancyId == jobId
+                      && application.Status !=
+                         ApplicationStatus.Rejected.ToString()
+                      && application.Status !=
+                         ApplicationStatus.Withdrawn.ToString()
+
+                select new
+                {
+                    ApplicationId =
+                        application.JobApplicationId,
+
+                    JobSeekerProfileId =
+                        profile.Id
+                })
+                .ToListAsync(cancellationToken);
+
+        if (applications.Count == 0)
+        {
+            return Array.Empty<CandidateRankingInput>();
+        }
+
+        var profileIds =
+            applications
+                .Select(application =>
+                    application.JobSeekerProfileId)
+                .Distinct()
+                .ToList();
+
+        // Load historical calculations once and select the
+        // latest result for every candidate profile.
+        var matchResults =
+            await _context.MatchResults
+                .AsNoTracking()
+                .Where(result =>
+                    result.JobId == jobId &&
+                    profileIds.Contains(
+                        result.JobSeekerProfileId))
+                .ToListAsync(cancellationToken);
+
+        var latestByProfile =
+            matchResults
+                .GroupBy(result =>
+                    result.JobSeekerProfileId)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .OrderByDescending(result =>
+                            result.CalculatedAtUtc)
+                        .ThenByDescending(result =>
+                            result.Id)
+                        .First());
+
+        var rankingInputs =
+            new List<CandidateRankingInput>();
+
+        foreach (var application in applications)
+        {
+            if (!latestByProfile.TryGetValue(
+                    application.JobSeekerProfileId,
+                    out var latest))
+            {
+                // Candidate has not been matched yet.
+                continue;
+            }
+
+            // Mandatory eligibility failure means the
+            // candidate is not included in top-candidate ranking.
+            if (!latest.IsEligible)
+            {
+                continue;
+            }
+
+            rankingInputs.Add(
+                new CandidateRankingInput
+                {
+                    ApplicationId =
+                        application.ApplicationId,
+
+                    JobSeekerProfileId =
+                        application.JobSeekerProfileId,
+
+                    TotalScore =
+                        latest.TotalScore,
+
+                    IsEligible =
+                        latest.IsEligible,
+
+                    Recommendation =
+                        latest.Recommendation
+                });
+        }
+
+        return rankingInputs;
     }
 
     private static List<string> ParseDelimitedValues(

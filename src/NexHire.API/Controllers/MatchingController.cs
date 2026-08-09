@@ -12,11 +12,13 @@ public class MatchingController : ControllerBase
 {
     private readonly IMatchingService _matchingService;
 
-    public MatchingController(IMatchingService matchingService)
+    public MatchingController(
+        IMatchingService matchingService)
     {
         _matchingService =
             matchingService ??
-            throw new ArgumentNullException(nameof(matchingService));
+            throw new ArgumentNullException(
+                nameof(matchingService));
     }
 
     /// <summary>
@@ -48,7 +50,8 @@ public class MatchingController : ControllerBase
             }
 
             return Ok(
-                MatchingDtoMapper.ToMatchScoreResponseDto(result));
+                MatchingDtoMapper
+                    .ToMatchScoreResponseDto(result));
         }
         catch (ArgumentException exception)
         {
@@ -75,10 +78,11 @@ public class MatchingController : ControllerBase
         try
         {
             var result =
-                await _matchingService.CalculateAndSaveMatchAsync(
-                    jobId,
-                    jobSeekerProfileId,
-                    cancellationToken);
+                await _matchingService
+                    .CalculateAndSaveMatchAsync(
+                        jobId,
+                        jobSeekerProfileId,
+                        cancellationToken);
 
             if (result is null)
             {
@@ -91,7 +95,42 @@ public class MatchingController : ControllerBase
             }
 
             return Ok(
-                MatchingDtoMapper.ToMatchScoreResponseDto(result));
+                MatchingDtoMapper
+                    .ToMatchScoreResponseDto(result));
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(
+                new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(
+                new { message = exception.Message });
+        }
+    }
+
+    /// <summary>
+    /// Returns the highest-ranked eligible candidates for a job.
+    /// Uses competition ranking: 1, 2, 2, 4.
+    /// Rejected and withdrawn applications are excluded.
+    /// </summary>
+    [HttpGet("jobs/{jobId:guid}/rankings")]
+    public async Task<IActionResult> GetRankings(
+        Guid jobId,
+        [FromQuery] int top = 10,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var rankings =
+                await _matchingService
+                    .GetRankedCandidatesForJobAsync(
+                        jobId,
+                        top,
+                        cancellationToken);
+
+            return Ok(rankings);
         }
         catch (ArgumentException exception)
         {

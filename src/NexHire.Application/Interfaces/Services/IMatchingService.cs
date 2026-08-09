@@ -17,6 +17,12 @@ public interface IMatchingService
         Guid jobSeekerProfileId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<CandidateRankingResult>>
+        GetRankedCandidatesForJobAsync(
+            Guid jobId,
+            int top = 10,
+            CancellationToken cancellationToken = default);
+
     List<CandidateRankingResult> RankCandidates(
         IEnumerable<CandidateRankingInput> candidates);
 

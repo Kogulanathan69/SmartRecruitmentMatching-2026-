@@ -1,4 +1,4 @@
-﻿using NexHire.Application.Interfaces.Repositories;
+using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Matching;
 
@@ -326,6 +326,47 @@ public class MatchingService : IMatchingService
                 weightedResult.ScoreDetails
                     .ToList()
         };
+    }
+
+    /// <summary>
+    /// Loads active job applications and their latest saved
+    /// eligible match result, then applies competition ranking.
+    /// </summary>
+    public async Task<IReadOnlyList<CandidateRankingResult>>
+        GetRankedCandidatesForJobAsync(
+            Guid jobId,
+            int top = 10,
+            CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "JobId is required.",
+                nameof(jobId));
+        }
+
+        if (top < 1 || top > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(top),
+                "Top must be between 1 and 100.");
+        }
+
+        if (_matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching repository is not available.");
+        }
+
+        var inputs =
+            await _matchingRepository
+                .GetRankingInputsForJobAsync(
+                    jobId,
+                    cancellationToken);
+
+        return RankCandidates(inputs)
+            .Take(top)
+            .ToList();
     }
 
     /// <summary>

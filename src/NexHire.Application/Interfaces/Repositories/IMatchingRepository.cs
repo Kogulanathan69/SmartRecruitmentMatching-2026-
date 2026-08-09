@@ -12,4 +12,9 @@ public interface IMatchingRepository
     Task SaveMatchResultAsync(
         MatchingCalculationResult result,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<CandidateRankingInput>>
+        GetRankingInputsForJobAsync(
+            Guid jobId,
+            CancellationToken cancellationToken = default);
 }
