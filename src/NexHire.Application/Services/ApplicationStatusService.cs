@@ -1,4 +1,4 @@
-using NexHire.Application.DTOs.ApplicationStatus;
+﻿using NexHire.Application.DTOs.ApplicationStatus;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Domain.Entities;
@@ -10,13 +10,16 @@ public class ApplicationStatusService : IApplicationStatusService
 {
     private readonly IJobApplicationRepository _applicationRepository;
     private readonly IApplicationStatusHistoryRepository _historyRepository;
+    private readonly IJobRepository _jobRepository;
 
     public ApplicationStatusService(
         IJobApplicationRepository applicationRepository,
-        IApplicationStatusHistoryRepository historyRepository)
+        IApplicationStatusHistoryRepository historyRepository,
+        IJobRepository jobRepository)
     {
         _applicationRepository = applicationRepository;
         _historyRepository = historyRepository;
+        _jobRepository = jobRepository;
     }
 
     public async Task<ApplicationStatusResultDto> UpdateByEmployerAsync(
@@ -31,6 +34,25 @@ public class ApplicationStatusService : IApplicationStatusService
         {
             throw new KeyNotFoundException(
                 "Job application was not found.");
+        }
+
+        var ownedJob =
+            await _jobRepository.GetOwnedByIdAsync(
+                application.VacancyId,
+                employerUserId);
+
+        if (ownedJob is null)
+        {
+            throw new UnauthorizedAccessException(
+                "You do not own the job associated with this application.");
+        }
+
+        if (ownedJob.Status is JobStatus.Closed
+            or JobStatus.Expired
+            or JobStatus.Suspended)
+        {
+            throw new InvalidOperationException(
+                $"Application status cannot be changed while the job is {ownedJob.Status}.");
         }
 
         if (!Enum.TryParse<ApplicationStatus>(
@@ -67,9 +89,10 @@ public class ApplicationStatusService : IApplicationStatusService
                 newStatus))
         {
             throw new InvalidOperationException(
-                $"Application status cannot change from " +
-                $"{currentStatus} to {newStatus}.");
+                $"Application status cannot change from {currentStatus} to {newStatus}.");
         }
+
+        var changedAt = DateTime.UtcNow;
 
         var history = new ApplicationStatusHistory
         {
@@ -80,11 +103,11 @@ public class ApplicationStatusService : IApplicationStatusService
             ChangedByUserId = employerUserId,
             ChangedByRole = "Employer",
             Reason = dto.Reason,
-            ChangedAtUtc = DateTime.UtcNow
+            ChangedAtUtc = changedAt
         };
 
         application.Status = newStatus.ToString();
-        application.UpdatedAtUtc = DateTime.UtcNow;
+        application.UpdatedAtUtc = changedAt;
 
         await _historyRepository.AddAsync(history);
 
@@ -213,14 +236,16 @@ public class ApplicationStatusService : IApplicationStatusService
                 "Job application was not found.");
         }
 
-        /*
-         * IMPORTANT:
-         * Current JobApplication entity does not contain
-         * EmployerUserId / CompanyId.
-         *
-         * Therefore employer ownership cannot yet be checked here.
-         * Later Company/Vacancy entity connection must supply this.
-         */
+        var ownedJob =
+            await _jobRepository.GetOwnedByIdAsync(
+                application.VacancyId,
+                employerUserId);
+
+        if (ownedJob is null)
+        {
+            throw new UnauthorizedAccessException(
+                "You do not own the job associated with this application.");
+        }
 
         var history =
             await _historyRepository
@@ -258,9 +283,15 @@ public class ApplicationStatusService : IApplicationStatusService
 
             ApplicationStatus.UnderReview =>
                 next == ApplicationStatus.Shortlisted ||
+                next == ApplicationStatus.WaitingList ||
                 next == ApplicationStatus.Rejected,
 
             ApplicationStatus.Shortlisted =>
+                next == ApplicationStatus.WaitingList ||
+                next == ApplicationStatus.Rejected,
+
+            ApplicationStatus.WaitingList =>
+                next == ApplicationStatus.Shortlisted ||
                 next == ApplicationStatus.Rejected,
 
             _ => false
@@ -270,11 +301,9 @@ public class ApplicationStatusService : IApplicationStatusService
     private static bool CanCandidateWithdraw(
         ApplicationStatus current)
     {
-        return current ==
-                   ApplicationStatus.Submitted ||
-               current ==
-                   ApplicationStatus.UnderReview ||
-               current ==
-                   ApplicationStatus.Shortlisted;
+        return current == ApplicationStatus.Submitted ||
+               current == ApplicationStatus.UnderReview ||
+               current == ApplicationStatus.Shortlisted ||
+               current == ApplicationStatus.WaitingList;
     }
 }

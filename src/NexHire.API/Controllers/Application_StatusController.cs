@@ -1,4 +1,4 @@
-using FluentValidation;
+﻿using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using NexHire.Application.Common;
@@ -35,10 +35,6 @@ public class Application_StatusController : ControllerBase
 
     private Guid CurrentUserId => _currentUser.UserId;
 
-    // ----------------------------------------------------
-    // EMPLOYER - UPDATE APPLICATION STATUS
-    // ----------------------------------------------------
-
     [HttpPost("employer/applications/{applicationId:guid}/status")]
     [Authorize(Roles = RoleNames.Employer)]
     public async Task<IActionResult> EmployerUpdateStatus(
@@ -52,21 +48,37 @@ public class Application_StatusController : ControllerBase
         {
             return BadRequest(
                 validation.Errors
-                    .Select(x => x.ErrorMessage));
+                    .Select(error => error.ErrorMessage));
         }
 
-        var result =
-            await _service.UpdateByEmployerAsync(
-                applicationId,
-                CurrentUserId,
-                dto);
-
-        return Ok(result);
+        try
+        {
+            return Ok(
+                await _service.UpdateByEmployerAsync(
+                    applicationId,
+                    CurrentUserId,
+                    dto));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(
+                new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(
+                new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(
+                new { message = exception.Message });
+        }
     }
-
-    // ----------------------------------------------------
-    // CANDIDATE - WITHDRAW APPLICATION
-    // ----------------------------------------------------
 
     [HttpPost("candidate/applications/{applicationId:guid}/withdraw")]
     [Authorize(Roles = RoleNames.JobSeeker)]
@@ -81,49 +93,76 @@ public class Application_StatusController : ControllerBase
         {
             return BadRequest(
                 validation.Errors
-                    .Select(x => x.ErrorMessage));
+                    .Select(error => error.ErrorMessage));
         }
 
-        var result =
-            await _service.WithdrawByCandidateAsync(
-                applicationId,
-                CurrentUserId,
-                dto);
-
-        return Ok(result);
+        try
+        {
+            return Ok(
+                await _service.WithdrawByCandidateAsync(
+                    applicationId,
+                    CurrentUserId,
+                    dto));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(
+                new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(
+                new { message = exception.Message });
+        }
     }
-
-    // ----------------------------------------------------
-    // CANDIDATE - APPLICATION STATUS HISTORY
-    // ----------------------------------------------------
 
     [HttpGet("candidate/applications/{applicationId:guid}/history")]
     [Authorize(Roles = RoleNames.JobSeeker)]
     public async Task<IActionResult> CandidateHistory(
         Guid applicationId)
     {
-        var result =
-            await _service.GetCandidateHistoryAsync(
-                applicationId,
-                CurrentUserId);
-
-        return Ok(result);
+        try
+        {
+            return Ok(
+                await _service.GetCandidateHistoryAsync(
+                    applicationId,
+                    CurrentUserId));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(
+                new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
-
-    // ----------------------------------------------------
-    // EMPLOYER - APPLICATION STATUS HISTORY
-    // ----------------------------------------------------
 
     [HttpGet("employer/applications/{applicationId:guid}/history")]
     [Authorize(Roles = RoleNames.Employer)]
     public async Task<IActionResult> EmployerHistory(
         Guid applicationId)
     {
-        var result =
-            await _service.GetEmployerHistoryAsync(
-                applicationId,
-                CurrentUserId);
-
-        return Ok(result);
+        try
+        {
+            return Ok(
+                await _service.GetEmployerHistoryAsync(
+                    applicationId,
+                    CurrentUserId));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(
+                new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 }

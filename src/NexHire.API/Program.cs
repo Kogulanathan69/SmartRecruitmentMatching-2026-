@@ -1,3 +1,4 @@
+﻿using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using NexHire.API.Extensions;
@@ -8,6 +9,7 @@ using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Mappings;
 using NexHire.Application.Matching;
 using NexHire.Application.Services;
+using NexHire.Application.Validators;
 
 using NexHire.Infrastructure.Data;
 using NexHire.Infrastructure.Matching;
@@ -19,6 +21,9 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. CONTROLLERS
 // ----------------------------------------------------
 builder.Services.AddControllers();
+
+builder.Services.AddValidatorsFromAssemblyContaining<
+    UpdateApplicationStatusRequestValidator>();
 
 // ----------------------------------------------------
 // 2. SWAGGER
