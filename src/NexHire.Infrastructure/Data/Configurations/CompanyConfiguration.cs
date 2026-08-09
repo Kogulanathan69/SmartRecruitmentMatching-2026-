@@ -32,6 +32,6 @@ public class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.HasMany(c => c.Documents).WithOne(d => d.Company).HasForeignKey(d => d.CompanyId).OnDelete(DeleteBehavior.Cascade);
         builder.HasOne(c => c.Verification).WithOne(v => v.Company).HasForeignKey<CompanyVerification>(v => v.CompanyId).OnDelete(DeleteBehavior.Cascade);
         builder.HasMany(c => c.Jobs).WithOne(j => j.Company).HasForeignKey(j => j.CompanyId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasMany(c => c.TalentPoolEntries).WithOne(t => t.Company).HasForeignKey(t => t.CompanyId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasMany(c => c.TalentPoolEntries).WithOne(t => t.Company).HasForeignKey(t => t.CompanyId).OnDelete(DeleteBehavior.Restrict);
     }
 }
