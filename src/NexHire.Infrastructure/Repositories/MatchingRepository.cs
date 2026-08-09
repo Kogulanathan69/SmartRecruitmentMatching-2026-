@@ -571,6 +571,51 @@ public class MatchingRepository : IMatchingRepository
         return comparisonInputs;
     }
 
+    public async Task<(Guid JobId, Guid JobSeekerProfileId)?>
+        GetApplicationMatchingTargetAsync(
+            Guid applicationId,
+            CancellationToken cancellationToken = default)
+    {
+        if (applicationId == Guid.Empty)
+        {
+            return null;
+        }
+
+        var target =
+            await (
+                from application in
+                    _context.JobApplications.AsNoTracking()
+
+                join profile in
+                    _context.JobSeekerProfiles.AsNoTracking()
+
+                    on application.CandidateId
+                    equals profile.UserId
+
+                where application.JobApplicationId ==
+                      applicationId
+
+                select new
+                {
+                    JobId =
+                        application.VacancyId,
+
+                    JobSeekerProfileId =
+                        profile.Id
+                })
+                .SingleOrDefaultAsync(
+                    cancellationToken);
+
+        if (target is null)
+        {
+            return null;
+        }
+
+        return (
+            target.JobId,
+            target.JobSeekerProfileId);
+    }
+
     private static List<string> ParseDelimitedValues(
         string? value)
     {

@@ -1,3 +1,4 @@
+using NexHire.Application.DTOs.Matching;
 using NexHire.Application.Matching;
 
 namespace NexHire.Application.Interfaces.Services;
@@ -29,6 +30,9 @@ public interface IMatchingService
             IReadOnlyCollection<Guid> applicationIds,
             CancellationToken cancellationToken = default);
 
+    Task<ExplainMatchDto?> ExplainMatchAsync(
+        Guid applicationId,
+        CancellationToken cancellationToken = default);
     List<CandidateRankingResult> RankCandidates(
         IEnumerable<CandidateRankingInput> candidates);
 

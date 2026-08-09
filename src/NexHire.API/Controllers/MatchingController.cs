@@ -177,4 +177,45 @@ public class MatchingController : ControllerBase
                 new { message = exception.Message });
         }
     }
+
+    /// <summary>
+    /// Returns a transparent explanation of why a
+    /// candidate received the current matching result.
+    /// </summary>
+    [HttpGet("applications/{applicationId:guid}/explain")]
+    public async Task<IActionResult> ExplainApplicationMatch(
+        Guid applicationId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var explanation =
+                await _matchingService
+                    .ExplainMatchAsync(
+                        applicationId,
+                        cancellationToken);
+
+            if (explanation is null)
+            {
+                return NotFound(
+                    new
+                    {
+                        message =
+                            "Application, job, or candidate profile was not found."
+                    });
+            }
+
+            return Ok(explanation);
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(
+                new { message = exception.Message });
+        }
+        catch (InvalidOperationException exception)
+        {
+            return Conflict(
+                new { message = exception.Message });
+        }
+    }
 }

@@ -1,6 +1,8 @@
+using NexHire.Application.DTOs.Matching;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Matching;
+using NexHire.Application.Mappings;
 
 namespace NexHire.Application.Services;
 
@@ -326,6 +328,54 @@ public class MatchingService : IMatchingService
                 weightedResult.ScoreDetails
                     .ToList()
         };
+    }
+
+    /// <summary>
+    /// Explains the current matching decision for one
+    /// job application using the complete matching engine.
+    /// </summary>
+    public async Task<ExplainMatchDto?> ExplainMatchAsync(
+        Guid applicationId,
+        CancellationToken cancellationToken = default)
+    {
+        if (applicationId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "ApplicationId is required.",
+                nameof(applicationId));
+        }
+
+        if (_matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching repository is not available.");
+        }
+
+        var target =
+            await _matchingRepository
+                .GetApplicationMatchingTargetAsync(
+                    applicationId,
+                    cancellationToken);
+
+        if (target is null)
+        {
+            return null;
+        }
+
+        var result =
+            await CalculateMatchAsync(
+                target.Value.JobId,
+                target.Value.JobSeekerProfileId,
+                cancellationToken);
+
+        if (result is null)
+        {
+            return null;
+        }
+
+        return MatchingDtoMapper.ToExplainMatchDto(
+            applicationId,
+            result);
     }
 
     /// <summary>

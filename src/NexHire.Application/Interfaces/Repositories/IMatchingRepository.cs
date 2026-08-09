@@ -23,4 +23,8 @@ public interface IMatchingRepository
             Guid jobId,
             IReadOnlyCollection<Guid> applicationIds,
             CancellationToken cancellationToken = default);
-}
+
+    Task<(Guid JobId, Guid JobSeekerProfileId)?>
+        GetApplicationMatchingTargetAsync(
+            Guid applicationId,
+            CancellationToken cancellationToken = default);}
