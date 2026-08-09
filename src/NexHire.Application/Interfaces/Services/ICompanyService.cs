@@ -14,4 +14,6 @@ public interface ICompanyService
     Task<CompanyResponseDto> VerifyCompanyAsync(Guid companyId, Guid adminUserId, VerifyCompanyDto dto);
     Task MarkEmailVerifiedAsync(Guid companyId, Guid userId);
     Task MarkPhoneVerifiedAsync(Guid companyId, Guid userId);
+    Task<IReadOnlyList<CompanyResponseDto>> GetPendingAsync();
 }
+

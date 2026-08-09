@@ -1,195 +1,326 @@
+using NexHire.Infrastructure.Privacy;
+using NexHire.API.Middleware;
 using Microsoft.EntityFrameworkCore;
-
+using Microsoft.Extensions.FileProviders;
+using NexHire.API.Extensions;
 using NexHire.API.Services;
 
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
+using NexHire.Application.Mappings;
+using NexHire.Application.Matching;
 using NexHire.Application.Services;
 
 using NexHire.Infrastructure.Data;
+using NexHire.Infrastructure.Matching;
 using NexHire.Infrastructure.Repositories;
+using NexHire.Infrastructure.Reports;
+using NexHire.Infrastructure.Notifications;
+
+using FluentValidation;
+using NexHire.Application.Validators;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//
 // ----------------------------------------------------
 // 1. CONTROLLERS
 // ----------------------------------------------------
-//
 builder.Services.AddControllers();
 
+builder.Services.AddValidatorsFromAssemblyContaining<CreateCompanyValidator>();
 
-//
 // ----------------------------------------------------
 // 2. SWAGGER
 // ----------------------------------------------------
-//
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddJwtSwagger();
+});
 
-//
 // ----------------------------------------------------
 // 3. DATABASE
 // ----------------------------------------------------
-//
 var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection");
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "Connection string 'DefaultConnection' was not found.");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseSqlServer(connectionString);
 });
 
+// ----------------------------------------------------
+// 4. AUTHENTICATION
+// ----------------------------------------------------
+builder.Services.AddNexHireAuthentication(
+    builder.Configuration);
 
-//
 // ----------------------------------------------------
-// 4. HTTP CONTEXT ACCESSOR
+// 5. HTTP CONTEXT / CURRENT USER
 // ----------------------------------------------------
-//
 builder.Services.AddHttpContextAccessor();
 
-
-//
-// ----------------------------------------------------
-// 5. CURRENT USER SERVICE
-// ----------------------------------------------------
-//
 builder.Services.AddScoped<
     ICurrentUserService,
     CurrentUserService>();
 
+// ----------------------------------------------------
+// 6. USER / AUTH REPOSITORY
+// ----------------------------------------------------
+builder.Services.AddScoped<
+    IUserRepository,
+    UserRepository>();
 
-//
 // ----------------------------------------------------
-// 6. JOB APPLICATION REPOSITORY
+// 7. JOB APPLICATION REPOSITORY
 // ----------------------------------------------------
-//
 builder.Services.AddScoped<
     IJobApplicationRepository,
     JobApplicationRepository>();
 
-
-//
 // ----------------------------------------------------
-// 7. APPLICATION STATUS HISTORY REPOSITORY
+// 8. APPLICATION STATUS HISTORY
 // ----------------------------------------------------
-//
 builder.Services.AddScoped<
     IApplicationStatusHistoryRepository,
     ApplicationStatusHistoryRepository>();
 
-
-//
 // ----------------------------------------------------
-// 8. CONTACT REQUEST REPOSITORY
+// 9. CONTACT REQUEST REPOSITORY
 // ----------------------------------------------------
-//
 builder.Services.AddScoped<
     IContactRequestRepository,
     ContactRequestRepository>();
 
-
-//
 // ----------------------------------------------------
-// 9. APPLICATION STATUS SERVICE
+// 10. APPLICATION STATUS SERVICE
 // ----------------------------------------------------
-//
 builder.Services.AddScoped<
     IApplicationStatusService,
     ApplicationStatusService>();
 
-
-//
 // ----------------------------------------------------
-// 10. CONSENT CONTACT SERVICE
+// 11. CONSENT CONTACT SERVICE
 // ----------------------------------------------------
-//
 builder.Services.AddScoped<
     IConsentContactService,
     ConsentContactService>();
 
-
-//
 // ----------------------------------------------------
-// 11. AUTHORIZATION
+// 12. JOB SEEKER + RESUME MODULE
 // ----------------------------------------------------
-//
-builder.Services.AddAuthorization();
+builder.Services.AddScoped<
+    IJobSeekerRepository,
+    JobSeekerRepository>();
 
+builder.Services.AddScoped<
+    IResumeRepository,
+    ResumeRepository>();
 
-//
+builder.Services.AddScoped<
+    IJobSeekerService,
+    JobSeekerService>();
+
+builder.Services.AddScoped<
+    IResumeService,
+    ResumeService>();
+
+builder.Services.AddAutoMapper(
+    cfg => { },
+    typeof(JobSeekerMappingProfile).Assembly);
+
 // ----------------------------------------------------
-// 12. CORS
+// 13. MATCHING ENGINE
 // ----------------------------------------------------
-//
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
 
+// Eligibility
+builder.Services.AddScoped<
+    IEligibilityEngine,
+    EligibilityEngine>();
 
-//
+// Individual calculators
+builder.Services.AddScoped<
+    SkillMatchCalculator>();
+
+builder.Services.AddScoped<
+    ExperienceMatchCalculator>();
+
+builder.Services.AddScoped<
+    EducationMatchCalculator>();
+
+builder.Services.AddScoped<
+    CertificationMatchCalculator>();
+
+builder.Services.AddScoped<
+    LocationMatchCalculator>();
+
+builder.Services.AddScoped<
+    ProjectMatchCalculator>();
+
+builder.Services.AddScoped<
+    ProfileCompletionMatchCalculator>();
+
+// Final score
+builder.Services.AddScoped<
+    MatchScoreCalculator>();
+
+// Recommendation / ranking / comparison
+builder.Services.AddScoped<
+    IRecommendationEngine,
+    RecommendationEngine>();
+
+builder.Services.AddScoped<
+    CandidateRankingEngine>();
+
+builder.Services.AddScoped<
+    CandidateComparisonEngine>();
+
+// Main matching facade
+builder.Services.AddScoped<
+    IMatchingEngine,
+    MatchingEngine>();
+
+// Matching service
+builder.Services.AddScoped<
+    IMatchingService,
+    MatchingService>();
+
 // ----------------------------------------------------
-// BUILD APPLICATION
+// 14. ADMIN MODULE
 // ----------------------------------------------------
-//
-var app = builder.Build();
+builder.Services.AddScoped<
+    IAdminService,
+    AdminService>();
 
-
-//
 // ----------------------------------------------------
-// 13. SWAGGER MIDDLEWARE
+// 15. COMPANY MODULE
 // ----------------------------------------------------
-//
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+builder.Services.AddScoped<
+    ICompanyRepository,
+    CompanyRepository>();
 
+builder.Services.AddScoped<
+    IUnitOfWork,
+    UnitOfWork>();
 
-//
+builder.Services.AddScoped<
+    ICompanyService,
+    CompanyService>();
+
 // ----------------------------------------------------
-// 14. HTTPS REDIRECTION
+// CORE COMPLETION MODULES
 // ----------------------------------------------------
-//
-app.UseHttpsRedirection();
+builder.Services.AddScoped<IJobRepository, JobRepository>();
+builder.Services.AddScoped<IJobService, JobService>();
+builder.Services.AddScoped<IApplicationRepository, ApplicationRepository>();
+builder.Services.AddScoped<IApplicationService, ApplicationService>();
+builder.Services.AddScoped<ICoreMatchingService, CoreMatchingService>();
+builder.Services.AddScoped<INotificationWriter, NotificationWriter>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddHostedService<OutboxWorker>();
+builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IPrivacyService, PrivacyService>();
+builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 
-
-//
-// ----------------------------------------------------
-// 15. CORS
-// ----------------------------------------------------
-//
-app.UseCors("AllowFrontend");
-
-
-//
 // ----------------------------------------------------
 // 16. AUTHORIZATION
 // ----------------------------------------------------
-//
+builder.Services.AddAuthorization();
+
+// ----------------------------------------------------
+// 17. CORS
+// ----------------------------------------------------
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        "AllowFrontend",
+        policy =>
+        {
+            policy
+                .AllowAnyOrigin()
+                .AllowAnyHeader()
+                .AllowAnyMethod();
+        });
+});
+
+// ----------------------------------------------------
+// BUILD APP
+// ----------------------------------------------------
+var app = builder.Build();
+
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseMiddleware<ExceptionMiddleware>();
+
+// ----------------------------------------------------
+// 18. SWAGGER
+// ----------------------------------------------------
+app.UseSwagger();
+
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint(
+        "/swagger/v1/swagger.json",
+        "NexHire API v1");
+
+    options.RoutePrefix = "swagger";
+});
+
+// ----------------------------------------------------
+// 19. HTTPS
+// ----------------------------------------------------
+app.UseHttpsRedirection();
+
+// ----------------------------------------------------
+// 20. CORS
+// ----------------------------------------------------
+app.UseCors("AllowFrontend");
+
+// ----------------------------------------------------
+// 21. FRONTEND STATIC FILES
+// ----------------------------------------------------
+var frontendPath =
+    Path.GetFullPath(
+        Path.Combine(
+            app.Environment.ContentRootPath,
+            "..",
+            "..",
+            "frontend"));
+
+if (Directory.Exists(frontendPath))
+{
+    app.UseStaticFiles(
+        new StaticFileOptions
+        {
+            FileProvider =
+                new PhysicalFileProvider(
+                    frontendPath)
+        });
+}
+
+// ----------------------------------------------------
+// 22. AUTHENTICATION + AUTHORIZATION
+// ----------------------------------------------------
+app.UseAuthentication();
 app.UseAuthorization();
 
-
-//
 // ----------------------------------------------------
-// 17. MAP CONTROLLERS
+// 23. CONTROLLERS
 // ----------------------------------------------------
-//
 app.MapControllers();
 
+// ----------------------------------------------------
+// 24. DEFAULT PAGE
+// ----------------------------------------------------
+app.MapGet(
+    "/",
+    () => Results.Redirect(
+        "/auth/login.html"));
 
-//
 // ----------------------------------------------------
-// RUN APPLICATION
+// RUN
 // ----------------------------------------------------
-//
 app.Run();

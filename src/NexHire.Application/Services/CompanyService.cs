@@ -18,11 +18,15 @@ public class CompanyService : ICompanyService
 
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IAuditLogRepository _audit;
+    private readonly INotificationWriter _notifications;
 
-    public CompanyService(IUnitOfWork unitOfWork, IMapper mapper)
+    public CompanyService(IUnitOfWork unitOfWork, IMapper mapper, IAuditLogRepository audit, INotificationWriter notifications)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _audit = audit;
+        _notifications = notifications;
     }
 
     public async Task<CompanyResponseDto> CreateCompanyAsync(Guid userId, CreateCompanyDto dto)
@@ -62,28 +66,179 @@ public class CompanyService : ICompanyService
         return companies.Select(MapCompany).ToList();
     }
 
-    public async Task<CompanyResponseDto> UpdateCompanyAsync(Guid companyId, Guid userId, UpdateCompanyDto dto)
+    public async Task<CompanyResponseDto> UpdateCompanyAsync(
+    Guid companyId,
+    Guid userId,
+    UpdateCompanyDto dto)
     {
-        var company = await GetOwnedCompanyAsync(companyId, userId, includeDetails: true);
-        if (company.Status is CompanyStatus.Active or CompanyStatus.Suspended)
-            throw new BusinessRuleException("An active or suspended company cannot change legal verification fields. Contact an administrator.");
+        var company =
+            await GetOwnedCompanyAsync(
+                companyId,
+                userId,
+                includeDetails: true);
 
-        if (!string.IsNullOrWhiteSpace(dto.OfficialEmail))
+        if (company.Status is
+            CompanyStatus.Active or
+            CompanyStatus.Suspended)
         {
-            var email = dto.OfficialEmail.Trim().ToLowerInvariant();
-            var duplicate = await _unitOfWork.Companies.GetByOfficialEmailAsync(email);
-            if (duplicate is not null && duplicate.Id != company.Id)
-                throw new BusinessRuleException("This official company email is already registered.");
-            dto.OfficialEmail = email;
-            company.IsEmailVerified = false;
+            throw new BusinessRuleException(
+                "An active or suspended company cannot change legal verification fields. Contact an administrator.");
         }
 
+        var verificationDataChanged = false;
+
+        // -------------------------------------------------
+        // NAME
+        // -------------------------------------------------
+
+        if (dto.Name is not null)
+        {
+            dto.Name = dto.Name.Trim();
+        }
+
+        // -------------------------------------------------
+        // LEGAL NAME
+        // -------------------------------------------------
+
+        if (dto.LegalName is not null)
+        {
+            var legalName = dto.LegalName.Trim();
+
+            if (!string.Equals(
+                    legalName,
+                    company.LegalName,
+                    StringComparison.Ordinal))
+            {
+                verificationDataChanged = true;
+            }
+
+            dto.LegalName = legalName;
+        }
+
+        // -------------------------------------------------
+        // OFFICIAL EMAIL
+        // -------------------------------------------------
+
+        if (dto.OfficialEmail is not null)
+        {
+            var email =
+                dto.OfficialEmail
+                    .Trim()
+                    .ToLowerInvariant();
+
+            var duplicate =
+                await _unitOfWork.Companies
+                    .GetByOfficialEmailAsync(email);
+
+            if (duplicate is not null &&
+                duplicate.Id != company.Id)
+            {
+                throw new BusinessRuleException(
+                    "This official company email is already registered.");
+            }
+
+            if (!string.Equals(
+                    email,
+                    company.OfficialEmail,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                company.IsEmailVerified = false;
+                verificationDataChanged = true;
+            }
+
+            dto.OfficialEmail = email;
+        }
+
+        // -------------------------------------------------
+        // PHONE
+        // -------------------------------------------------
+
+        if (dto.PhoneNumber is not null)
+        {
+            var phone = dto.PhoneNumber.Trim();
+
+            if (!string.Equals(
+                    phone,
+                    company.PhoneNumber,
+                    StringComparison.Ordinal))
+            {
+                company.IsPhoneVerified = false;
+                verificationDataChanged = true;
+            }
+
+            dto.PhoneNumber = phone;
+        }
+
+        // -------------------------------------------------
+        // REGISTERED ADDRESS
+        // -------------------------------------------------
+
+        if (dto.RegisteredAddress is not null)
+        {
+            var address =
+                dto.RegisteredAddress.Trim();
+
+            if (!string.Equals(
+                    address,
+                    company.RegisteredAddress,
+                    StringComparison.Ordinal))
+            {
+                company.IsAddressVerified = false;
+                verificationDataChanged = true;
+            }
+
+            dto.RegisteredAddress = address;
+        }
+
+        // -------------------------------------------------
+        // OTHER OPTIONAL VALUES
+        // -------------------------------------------------
+
+        if (dto.Website is not null)
+            dto.Website = dto.Website.Trim();
+
+        if (dto.Industry is not null)
+            dto.Industry = dto.Industry.Trim();
+
+        if (dto.CompanySize is not null)
+            dto.CompanySize = dto.CompanySize.Trim();
+
+        if (dto.City is not null)
+            dto.City = dto.City.Trim();
+
+        if (dto.Country is not null)
+            dto.Country = dto.Country.Trim();
+
+        if (dto.LogoUrl is not null)
+            dto.LogoUrl = dto.LogoUrl.Trim();
+
+        // -------------------------------------------------
+        // MAP
+        // -------------------------------------------------
+
         _mapper.Map(dto, company);
+
+        // Important verification data changed:
+        // old verification should no longer remain valid.
+        if (verificationDataChanged)
+        {
+            company.Status = CompanyStatus.Draft;
+            company.Verification = null;
+        }
+
         company.UpdatedAt = DateTime.UtcNow;
-        company.IsDomainMatched = IsWebsiteEmailDomainMatched(company.Website, company.OfficialEmail);
+
+        company.IsDomainMatched =
+            IsWebsiteEmailDomainMatched(
+                company.Website,
+                company.OfficialEmail);
+
         RecalculateTrust(company);
+
         _unitOfWork.Companies.Update(company);
+
         await _unitOfWork.SaveChangesAsync();
+
         return MapCompany(company);
     }
 
@@ -160,6 +315,7 @@ public class CompanyService : ICompanyService
         company.Status = CompanyStatus.Pending;
         company.UpdatedAt = DateTime.UtcNow;
         RecalculateTrust(company);
+        await _audit.AddAsync(new AuditLog { ActorUserId = userId, Action = "CompanyVerificationSubmitted", EntityType = "Company", EntityId = company.Id });
         await _unitOfWork.SaveChangesAsync();
         return MapStatus(company);
     }
@@ -236,8 +392,24 @@ public class CompanyService : ICompanyService
         company.UpdatedAt = DateTime.UtcNow;
         RecalculateTrust(company);
         _unitOfWork.Companies.Update(company);
+        await _audit.AddAsync(new AuditLog { ActorUserId = adminUserId, Action = "CompanyVerificationDecision", EntityType = "Company", EntityId = company.Id, Details = status.ToString() });
+        await _notifications.QueueAsync(company.CreatedByUserId, "CompanyVerification", "Company verification updated", $"Your company verification status is {status}.", "Company", company.Id);
         await _unitOfWork.SaveChangesAsync();
         return MapCompany(company);
+
+        if (status == VerificationStatus.Verified &&
+            !dto.OfficialEmailVerified)
+        {
+            throw new BusinessRuleException(
+                "The official company email must be verified before approval.");
+        }
+
+        if (status == VerificationStatus.Verified &&
+            !dto.PhoneVerified)
+        {
+            throw new BusinessRuleException(
+                "The company phone number must be verified before approval.");
+        }
     }
 
     private async Task<Company> GetOwnedCompanyAsync(Guid companyId, Guid userId, bool includeDetails)
@@ -315,6 +487,7 @@ public class CompanyService : ICompanyService
         OfficialEmail = c.OfficialEmail,
         PhoneNumber = c.PhoneNumber,
         RegisteredAddress = c.RegisteredAddress,
+        Description = c.Description,
         Website = c.Website,
         Industry = c.Industry,
         CompanySize = c.CompanySize,
@@ -369,5 +542,15 @@ public class CompanyService : ICompanyService
             Remarks = c.Verification?.Remarks,
             MissingRequirements = missing
         };
+    }
+    public async Task<IReadOnlyList<CompanyResponseDto>> GetPendingAsync()
+    {
+        var companies =
+            await _unitOfWork.Companies.GetByStatusAsync(
+                CompanyStatus.Pending);
+
+        return companies
+            .Select(MapCompany)
+            .ToList();
     }
 }
