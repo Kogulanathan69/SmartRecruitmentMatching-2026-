@@ -571,6 +571,26 @@ public class MatchingRepository : IMatchingRepository
         return comparisonInputs;
     }
 
+    public async Task<bool> EmployerOwnsJobAsync(
+        Guid jobId,
+        Guid employerUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty ||
+            employerUserId == Guid.Empty)
+        {
+            return false;
+        }
+
+        return await _context.Jobs
+            .AsNoTracking()
+            .AnyAsync(
+                job =>
+                    job.Id == jobId &&
+                    job.Company.CreatedByUserId == employerUserId,
+                cancellationToken);
+    }
+
     public async Task<(Guid JobId, Guid JobSeekerProfileId)?>
         GetApplicationMatchingTargetAsync(
             Guid applicationId,

@@ -59,6 +59,10 @@ public class MatchingController : ControllerBase
             return BadRequest(
                 new { message = exception.Message });
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
         catch (InvalidOperationException exception)
         {
             return Conflict(
@@ -104,6 +108,10 @@ public class MatchingController : ControllerBase
             return BadRequest(
                 new { message = exception.Message });
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
         catch (InvalidOperationException exception)
         {
             return Conflict(
@@ -138,6 +146,10 @@ public class MatchingController : ControllerBase
             return BadRequest(
                 new { message = exception.Message });
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
         catch (InvalidOperationException exception)
         {
             return Conflict(
@@ -170,6 +182,10 @@ public class MatchingController : ControllerBase
         {
             return BadRequest(
                 new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
         catch (InvalidOperationException exception)
         {
@@ -211,6 +227,10 @@ public class MatchingController : ControllerBase
         {
             return BadRequest(
                 new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
         catch (InvalidOperationException exception)
         {

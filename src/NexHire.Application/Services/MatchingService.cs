@@ -13,6 +13,7 @@ public class MatchingService : IMatchingService
 {
     private readonly IMatchingEngine _matchingEngine;
     private readonly IMatchingRepository? _matchingRepository;
+    private readonly ICurrentUserService? _currentUserService;
 
     /// <summary>
     /// Constructor kept for existing unit tests and pure
@@ -33,7 +34,8 @@ public class MatchingService : IMatchingService
     /// </summary>
     public MatchingService(
         IMatchingEngine matchingEngine,
-        IMatchingRepository matchingRepository)
+        IMatchingRepository matchingRepository,
+        ICurrentUserService currentUserService)
     {
         _matchingEngine =
             matchingEngine
@@ -44,6 +46,11 @@ public class MatchingService : IMatchingService
             matchingRepository
             ?? throw new ArgumentNullException(
                 nameof(matchingRepository));
+
+        _currentUserService =
+            currentUserService
+            ?? throw new ArgumentNullException(
+                nameof(currentUserService));
     }
 
     /// <summary>
@@ -75,6 +82,9 @@ public class MatchingService : IMatchingService
             throw new InvalidOperationException(
                 "Matching repository is not available.");
         }
+        await EnsureJobAccessAsync(
+            jobId,
+            cancellationToken);
 
         var input =
             await _matchingRepository
@@ -408,6 +418,10 @@ public class MatchingService : IMatchingService
                 "Matching repository is not available.");
         }
 
+        await EnsureJobAccessAsync(
+            jobId,
+            cancellationToken);
+
         var inputs =
             await _matchingRepository
                 .GetRankingInputsForJobAsync(
@@ -478,6 +492,10 @@ public class MatchingService : IMatchingService
                 "Matching repository is not available.");
         }
 
+        await EnsureJobAccessAsync(
+            jobId,
+            cancellationToken);
+
         var inputs =
             await _matchingRepository
                 .GetComparisonInputsForJobAsync(
@@ -507,6 +525,46 @@ public class MatchingService : IMatchingService
 
         return _matchingEngine.CompareCandidates(
             candidates);
+    }
+
+    /// <summary>
+    /// Admins may access every job. Employers may only access
+    /// matching data for jobs owned by their own company.
+    /// </summary>
+    private async Task EnsureJobAccessAsync(
+        Guid jobId,
+        CancellationToken cancellationToken)
+    {
+        if (_currentUserService is null ||
+            _matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching authorization services are not available.");
+        }
+
+        if (_currentUserService.IsInRole("Admin"))
+        {
+            return;
+        }
+
+        if (!_currentUserService.IsInRole("Employer"))
+        {
+            throw new UnauthorizedAccessException(
+                "You are not allowed to access employer matching data.");
+        }
+
+        var ownsJob =
+            await _matchingRepository
+                .EmployerOwnsJobAsync(
+                    jobId,
+                    _currentUserService.UserId,
+                    cancellationToken);
+
+        if (!ownsJob)
+        {
+            throw new UnauthorizedAccessException(
+                "You are not allowed to access matching data for this job.");
+        }
     }
 
     /// <summary>
