@@ -1,4 +1,4 @@
-using NexHire.Application.Interfaces.Repositories;
+﻿using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Matching;
 
@@ -87,6 +87,40 @@ public class MatchingService : IMatchingService
         }
 
         return CalculateMatch(input);
+    }
+
+    /// <summary>
+    /// Calculates a database-backed match and stores a
+    /// transparent historical result with all score details.
+    /// </summary>
+    public async Task<MatchingCalculationResult?>
+        CalculateAndSaveMatchAsync(
+            Guid jobId,
+            Guid jobSeekerProfileId,
+            CancellationToken cancellationToken = default)
+    {
+        var result =
+            await CalculateMatchAsync(
+                jobId,
+                jobSeekerProfileId,
+                cancellationToken);
+
+        if (result is null)
+        {
+            return null;
+        }
+
+        if (_matchingRepository is null)
+        {
+            throw new InvalidOperationException(
+                "Matching repository is not available.");
+        }
+
+        await _matchingRepository.SaveMatchResultAsync(
+            result,
+            cancellationToken);
+
+        return result;
     }
 
     /// <summary>

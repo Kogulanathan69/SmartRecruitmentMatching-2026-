@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Matching;
 using NexHire.Domain.Entities;
@@ -258,6 +258,50 @@ public class MatchingRepository : IMatchingRepository
             ProfileCompletionWeight =
                 matchingRule.ProfileCompletionWeight
         };
+    }
+
+    public async Task SaveMatchResultAsync(
+        MatchingCalculationResult result,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(result);
+
+        var matchResult = new MatchResult
+        {
+            Id = Guid.NewGuid(),
+            JobSeekerProfileId = result.JobSeekerProfileId,
+            JobId = result.JobId,
+            TotalScore = result.TotalScore,
+            IsEligible = result.IsEligible,
+            Recommendation = result.Recommendation,
+            Summary = result.Summary,
+            CalculatedAtUtc = DateTime.UtcNow
+        };
+
+        foreach (var detail in result.ScoreDetails)
+        {
+            matchResult.ScoreDetails.Add(
+                new MatchScoreDetail
+                {
+                    Id = Guid.NewGuid(),
+                    MatchResultId = matchResult.Id,
+                    Category = detail.Category,
+                    RawScore = detail.RawScore,
+                    Weight = detail.Weight,
+                    WeightedPoints = detail.WeightedPoints,
+                    MaximumWeightedPoints =
+                        detail.MaximumWeightedPoints,
+                    Status = detail.Status,
+                    Explanation = detail.Explanation
+                });
+        }
+
+        await _context.MatchResults.AddAsync(
+            matchResult,
+            cancellationToken);
+
+        await _context.SaveChangesAsync(
+            cancellationToken);
     }
 
     private static List<string> ParseDelimitedValues(
