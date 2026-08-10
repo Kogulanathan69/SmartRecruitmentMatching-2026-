@@ -123,6 +123,13 @@ builder.Services.AddScoped<
     IResumeRepository,
     ResumeRepository>();
 
+// IMPORTANT:
+// ResumeService requires IResumeFileStorage.
+// LocalResumeFileStorage is the implementation used by the API.
+builder.Services.AddScoped<
+    IResumeFileStorage,
+    LocalResumeFileStorage>();
+
 builder.Services.AddScoped<
     IJobSeekerService,
     JobSeekerService>();
@@ -253,6 +260,7 @@ builder.Services.AddScoped<
     INotificationRepository,
     NotificationRepository>();
 
+// Dashboard
 builder.Services.AddScoped<
     IDashboardRepository,
     DashboardRepository>();
@@ -261,6 +269,7 @@ builder.Services.AddScoped<
     IDashboardService,
     DashboardService>();
 
+// Background Outbox Worker
 builder.Services.AddHostedService<
     OutboxWorker>();
 
