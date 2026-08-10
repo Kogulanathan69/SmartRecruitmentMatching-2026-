@@ -1,4 +1,141 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Your opportunity overview · NexHire</title><link rel="stylesheet" href="../../assets/base.css"><link rel="stylesheet" href="../../assets/app.css"></head><body data-role="JobSeeker"><div class="app-shell"><aside class="sidebar"><div class="sidebar-head"><a class="brand" href="/app/jobseeker/dashboard.html"><span class="brand-mark">NH</span><span class="brand-name">Nex<strong>Hire</strong></span></a></div><div class="workspace-label">Job seeker workspace</div><ul class="nav-list"><li><a class="nav-link active" aria-current="page" href="/app/jobseeker/dashboard.html">Overview</a></li></ul><div class="sidebar-foot"><div class="user-mini"><span class="avatar" data-user-initials>NH</span><span><strong data-user-name>NexHire user</strong><span data-user-role>Job seeker</span></span></div><button class="signout" type="button" data-logout>Sign out</button></div></aside><button class="scrim" data-scrim aria-label="Close navigation"></button><main><header class="topbar"><button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button><div class="topbar-title"><strong>Your opportunity overview</strong><span>Job seeker workspace</span></div><div class="topbar-actions"><span id="dashboardState" class="badge">Loading data</span></div></header><div class="content"><header class="page-head"><div><p class="eyebrow">Today at NexHire</p><h1>Your opportunity overview</h1><p>See where your applications stand and what needs attention before your next move.</p></div></header><div id="dashboardError" class="status-message"></div>
-<section class="metrics"><article class="metric"><div class="metric-label">Applications</div><div id="metricA" class="metric-value">—</div><div class="metric-note">Total roles applied to</div></article><article class="metric"><div class="metric-label">Shortlisted</div><div id="metricB" class="metric-value">—</div><div class="metric-note">Applications moving forward</div></article><article class="metric"><div class="metric-label">Contact requests</div><div id="metricC" class="metric-value">—</div><div class="metric-note">Waiting for your decision</div></article><article class="metric"><div class="metric-label">Unread updates</div><div id="metricD" class="metric-value">—</div><div class="metric-note">Notifications needing attention</div></article></section>
-<section class="grid"><article class="panel"><header class="panel-head"><div><h2>Recent applications</h2><p>Your latest hiring activity, in order.</p></div></header><div class="table-wrap"><table class="data-table"><thead><tr><th>Role</th><th>Status</th><th>Applied</th><th>Reference</th></tr></thead><tbody id="recentRows"><tr><td colspan="4"><div class="empty"><div><strong>Loading applications</strong><span>Connecting to your workspace…</span></div></div></td></tr></tbody></table></div></article><aside class="panel"><header class="panel-head"><div><h2>Application signals</h2><p>A quick read of your pipeline.</p></div></header><ul class="signal-list"><li class="signal-item"><span class="signal-copy"><strong>Submitted</strong><span>Sent successfully</span></span><span id="signalA" class="signal-value">—</span></li><li class="signal-item"><span class="signal-copy"><strong>Under review</strong><span>Employer is reviewing</span></span><span id="signalB" class="signal-value">—</span></li><li class="signal-item"><span class="signal-copy"><strong>Waiting list</strong><span>Still in consideration</span></span><span id="signalC" class="signal-value">—</span></li><li class="signal-item"><span class="signal-copy"><strong>Rejected</strong><span>Closed applications</span></span><span id="signalD" class="signal-value">—</span></li></ul></aside></section>
-</div></main></div><script src="../../assets/api.js"></script><script src="../../assets/session.js"></script><script src="../../assets/dashboard.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Your opportunity overview · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+</head>
+<body data-role="JobSeeker">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Job seeker navigation">
+      <div class="sidebar-head">
+        <a class="brand" href="/app/jobseeker/dashboard.html">
+          <span class="brand-mark">NH</span>
+          <span class="brand-name">Nex<strong>Hire</strong></span>
+        </a>
+      </div>
+
+      <div class="workspace-label">Job seeker workspace</div>
+      <ul class="nav-list">
+        <li><a class="nav-link active" aria-current="page" href="/app/jobseeker/dashboard.html">Overview</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/jobs.html">Find jobs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/applications.html">Applications</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/profile.html">Profile</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/resumes.html">CVs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/contacts.html">Contact requests</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/notifications.html">Notifications</a></li>
+      </ul>
+
+      <div class="sidebar-foot">
+        <div class="user-mini">
+          <span class="avatar" data-user-initials>NH</span>
+          <span>
+            <strong data-user-name>NexHire user</strong>
+            <span data-user-role>Job seeker</span>
+          </span>
+        </div>
+        <button class="signout" type="button" data-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <button class="scrim" data-scrim aria-label="Close navigation"></button>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button>
+        <div class="topbar-title">
+          <strong>Your opportunity overview</strong>
+          <span>Job seeker workspace</span>
+        </div>
+        <div class="topbar-actions">
+          <span id="dashboardState" class="badge">Loading data</span>
+        </div>
+      </header>
+
+      <div class="content">
+        <header class="page-head">
+          <div>
+            <p class="eyebrow">Today at NexHire</p>
+            <h1>Your opportunity overview</h1>
+            <p>See where your applications stand and what needs attention before your next move.</p>
+          </div>
+        </header>
+
+        <div id="dashboardError" class="status-message"></div>
+
+        <section class="metrics">
+          <article class="metric">
+            <div class="metric-label">Applications</div>
+            <div id="metricA" class="metric-value">—</div>
+            <div class="metric-note">Total roles applied to</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Shortlisted</div>
+            <div id="metricB" class="metric-value">—</div>
+            <div class="metric-note">Applications moving forward</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Contact requests</div>
+            <div id="metricC" class="metric-value">—</div>
+            <div class="metric-note">Waiting for your decision</div>
+          </article>
+          <article class="metric">
+            <div class="metric-label">Unread updates</div>
+            <div id="metricD" class="metric-value">—</div>
+            <div class="metric-note">Notifications needing attention</div>
+          </article>
+        </section>
+
+        <section class="grid">
+          <article class="panel">
+            <header class="panel-head">
+              <div>
+                <h2>Recent applications</h2>
+                <p>Your latest hiring activity, in order.</p>
+              </div>
+              <a class="text-link" href="/app/jobseeker/applications.html">View all</a>
+            </header>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr><th>Role</th><th>Status</th><th>Applied</th><th>Reference</th></tr>
+                </thead>
+                <tbody id="recentRows">
+                  <tr>
+                    <td colspan="4">
+                      <div class="empty">
+                        <div><strong>Loading applications</strong><span>Connecting to your workspace…</span></div>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <aside class="panel">
+            <header class="panel-head">
+              <div>
+                <h2>Application signals</h2>
+                <p>A quick read of your pipeline.</p>
+              </div>
+            </header>
+            <ul class="signal-list">
+              <li class="signal-item"><span class="signal-copy"><strong>Submitted</strong><span>Sent successfully</span></span><span id="signalA" class="signal-value">—</span></li>
+              <li class="signal-item"><span class="signal-copy"><strong>Under review</strong><span>Employer is reviewing</span></span><span id="signalB" class="signal-value">—</span></li>
+              <li class="signal-item"><span class="signal-copy"><strong>Waiting list</strong><span>Still in consideration</span></span><span id="signalC" class="signal-value">—</span></li>
+              <li class="signal-item"><span class="signal-copy"><strong>Rejected</strong><span>Closed applications</span></span><span id="signalD" class="signal-value">—</span></li>
+            </ul>
+          </aside>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="../../assets/api.js"></script>
+  <script src="../../assets/session.js"></script>
+  <script src="../../assets/dashboard.js"></script>
+</body>
+</html>

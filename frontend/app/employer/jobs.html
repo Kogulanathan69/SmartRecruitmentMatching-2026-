@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Vacancies · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/employer.css">
+</head>
+<body data-role="Employer" data-page="jobs">
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Employer navigation">
+    <div class="sidebar-head"><a class="brand" href="/app/employer/dashboard.html"><span class="brand-mark">NH</span><span class="brand-name">Nex<strong>Hire</strong></span></a></div>
+    <div class="workspace-label">Employer workspace</div>
+    <ul class="nav-list"><li><a class="nav-link" href="/app/employer/dashboard.html">Overview</a></li><li><a class="nav-link" href="/app/employer/company.html">Company</a></li><li><a class="nav-link active" aria-current="page" href="/app/employer/jobs.html">Vacancies</a></li><li><a class="nav-link" href="/app/employer/applicants.html">Applicants</a></li><li><a class="nav-link" href="/app/employer/contacts.html">Contact requests</a></li><li><a class="nav-link" href="/app/employer/notifications.html">Notifications</a></li></ul>
+    <div class="sidebar-foot"><div class="user-mini"><span class="avatar" data-user-initials>NH</span><span><strong data-user-name>NexHire user</strong><span data-user-role>Employer</span></span></div><button class="signout" type="button" data-logout>Sign out</button></div>
+  </aside>
+  <button class="scrim" data-scrim aria-label="Close navigation"></button>
+  <main>
+    <header class="topbar"><button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button><div class="topbar-title"><strong>Vacancies</strong><span>Employer workspace</span></div><div class="topbar-actions"><span id="pageState" class="badge">Ready</span></div></header>
+    <div class="content employer-content">
+
+<header class="employer-hero"><div><p class="eyebrow">Vacancy management</p><h1>Publish roles candidates can understand.</h1><p>Create, edit and close vacancies with skills, experience, location and hiring details in one workspace.</p></div><button class="btn primary" id="newJob" type="button">New vacancy</button></header>
+<div id="pageMessage" class="status-message"></div>
+<section class="jobs-admin-layout">
+  <article class="panel vacancy-list-panel">
+    <header class="panel-head"><div><h2>Your vacancies</h2><p id="jobsCount">Loading…</p></div><button class="btn btn-secondary btn-small" id="refreshJobs" type="button">Refresh</button></header>
+    <div id="jobAdminList" class="vacancy-admin-list"></div>
+  </article>
+  <article class="panel form-panel sticky-panel">
+    <header class="panel-head"><div><h2 id="jobFormTitle">Create vacancy</h2><p>Skill format: <strong>C#:4, ASP.NET Core:3</strong>. Proficiency is 1–5.</p></div></header>
+    <form id="jobForm" class="employer-form">
+      <input id="jobId" type="hidden">
+      <div class="field-grid two">
+        <label><span>Title *</span><input id="jobTitle" required></label>
+        <label><span>Employment type *</span><input id="employmentType" required value="Full-time"></label>
+        <label><span>City</span><input id="jobCity"></label>
+        <label><span>Country</span><input id="jobCountry" value="Sri Lanka"></label>
+        <label><span>Experience min</span><input id="experienceMin" type="number" min="0" value="0"></label>
+        <label><span>Experience max</span><input id="experienceMax" type="number" min="0" value="5"></label>
+        <label><span>Minimum education level</span><input id="minimumEducation" type="number" min="0" value="0"></label>
+        <label><span>Target project count</span><input id="targetProjects" type="number" min="0" value="0"></label>
+        <label><span>Vacancy count</span><input id="vacancyCount" type="number" min="1" value="1"></label>
+        <label><span>Closing date *</span><input id="closingDate" type="date" required></label>
+        <label><span>Salary min</span><input id="salaryMin" type="number" min="0"></label>
+        <label><span>Salary max</span><input id="salaryMax" type="number" min="0"></label>
+        <label><span>Currency</span><input id="currency" value="LKR"></label>
+        <label><span>Required certifications</span><input id="requiredCertifications"></label>
+      </div>
+      <div class="check-row"><label><input id="isRemote" type="checkbox"> Remote</label><label><input id="isHybrid" type="checkbox"> Hybrid</label></div>
+      <label><span>Description *</span><textarea id="jobDescription" rows="5" required></textarea></label>
+      <label><span>Responsibilities</span><textarea id="responsibilities" rows="4"></textarea></label>
+      <label><span>Education requirement</span><textarea id="educationRequirement" rows="3"></textarea></label>
+      <label><span>Required skills</span><input id="requiredSkills" placeholder="C#:4, ASP.NET Core:3"></label>
+      <label><span>Preferred skills</span><input id="preferredSkills" placeholder="SQL Server:3"></label>
+      <div class="form-actions"><button class="btn primary" id="jobSubmit" type="submit">Publish vacancy</button><button class="btn btn-secondary" id="resetJobForm" type="button">Clear</button><button class="btn danger hidden" id="closeJob" type="button">Close vacancy</button></div>
+    </form>
+  </article>
+</section>
+
+    </div>
+  </main>
+</div>
+<script src="../../assets/api.js"></script>
+<script src="../../assets/session.js"></script>
+<script src="../../assets/employer.js"></script>
+</body>
+</html>

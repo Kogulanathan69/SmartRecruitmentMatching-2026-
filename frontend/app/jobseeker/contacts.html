@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Contact requests · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/jobseeker.css">
+</head>
+<body data-role="JobSeeker" data-page="contacts">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Job seeker navigation">
+      <div class="sidebar-head">
+        <a class="brand" href="/app/jobseeker/dashboard.html"><span class="brand-mark">NH</span><span class="brand-name">Nex<strong>Hire</strong></span></a>
+      </div>
+      <div class="workspace-label">Job seeker workspace</div>
+      <ul class="nav-list">
+        <li><a class="nav-link" href="/app/jobseeker/dashboard.html">Overview</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/jobs.html">Find jobs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/applications.html">Applications</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/profile.html">Profile</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/resumes.html">CVs</a></li>
+        <li><a class="nav-link active" aria-current="page" href="/app/jobseeker/contacts.html">Contact requests</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/notifications.html">Notifications</a></li>
+      </ul>
+      <div class="sidebar-foot">
+        <div class="user-mini"><span class="avatar" data-user-initials>NH</span><span><strong data-user-name>NexHire user</strong><span data-user-role>Job seeker</span></span></div>
+        <button class="signout" type="button" data-logout>Sign out</button>
+      </div>
+    </aside>
+    <button class="scrim" data-scrim aria-label="Close navigation"></button>
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button>
+        <div class="topbar-title"><strong>Contact requests</strong><span>Consent stays in your control</span></div>
+        <div class="topbar-actions"><span id="engagementState" class="badge">Loading</span></div>
+      </header>
+      <div class="content">
+        <header class="page-head"><div><p class="eyebrow">Employer contact permission</p><h1>Choose who can contact you</h1><p>Review employer requests linked to your applications. Your contact details stay private until you accept a request.</p></div></header>
+        <div id="engagementMessage" class="status-message" role="status" aria-live="polite"></div>
+        <section class="engagement-metrics" aria-label="Contact request summary">
+          <article class="engagement-metric"><span>Pending</span><strong id="contactPending">—</strong></article>
+          <article class="engagement-metric"><span>Accepted</span><strong id="contactAccepted">—</strong></article>
+          <article class="engagement-metric"><span>Declined</span><strong id="contactDeclined">—</strong></article>
+          <article class="engagement-metric"><span>Total</span><strong id="contactTotal">—</strong></article>
+        </section>
+        <section class="engagement-panel">
+          <div class="engagement-panel-head"><div><h2>Your requests</h2><p>Pending requests can be accepted or declined once.</p></div><button id="refreshContacts" class="engagement-secondary" type="button">Refresh</button></div>
+          <div id="contactList" class="engagement-list" aria-live="polite"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../../assets/api.js"></script>
+  <script src="../../assets/session.js"></script>
+  <script src="../../assets/jobseeker-engagement.js"></script>
+</body>
+</html>

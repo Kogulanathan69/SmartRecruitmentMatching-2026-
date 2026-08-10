@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Build and maintain your professional NexHire profile">
+  <title>Professional profile · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/jobseeker.css">
+</head>
+<body data-role="JobSeeker" data-page="profile">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Job seeker navigation">
+      <div class="sidebar-head">
+        <a class="brand" href="/app/jobseeker/dashboard.html">
+          <span class="brand-mark">NH</span>
+          <span class="brand-name">Nex<strong>Hire</strong></span>
+        </a>
+      </div>
+
+      <div class="workspace-label">Job seeker workspace</div>
+      <ul class="nav-list">
+        <li><a class="nav-link" href="/app/jobseeker/dashboard.html">Overview</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/jobs.html">Find jobs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/applications.html">Applications</a></li>
+        <li><a class="nav-link active" aria-current="page" href="/app/jobseeker/profile.html">Profile</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/resumes.html">CVs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/contacts.html">Contact requests</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/notifications.html">Notifications</a></li>
+      </ul>
+
+      <div class="sidebar-foot">
+        <div class="user-mini">
+          <span class="avatar" data-user-initials>NH</span>
+          <span>
+            <strong data-user-name>NexHire user</strong>
+            <span data-user-role>Job seeker</span>
+          </span>
+        </div>
+        <button class="signout" type="button" data-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <button class="scrim" data-scrim aria-label="Close navigation"></button>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button>
+        <div class="topbar-title">
+          <strong>Professional profile</strong>
+          <span>Your matching evidence</span>
+        </div>
+        <div class="topbar-actions">
+          <span id="profileState" class="badge">Loading</span>
+        </div>
+      </header>
+
+      <div class="content profile-content">
+        <header class="profile-hero">
+          <div>
+            <p class="eyebrow">Your professional evidence</p>
+            <h1>Build the profile behind every match.</h1>
+            <p>Keep your experience, education and skills accurate so every NexHire recommendation has evidence behind it.</p>
+          </div>
+
+          <aside class="profile-readiness" aria-labelledby="profileReadinessTitle">
+            <div class="profile-readiness-top">
+              <span id="profileReadinessTitle">Profile readiness</span>
+              <strong id="profileReadinessValue">0%</strong>
+            </div>
+            <div class="profile-progress" role="progressbar" aria-label="Profile readiness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <span id="profileProgressFill"></span>
+            </div>
+            <p id="profileReadinessLabel">Complete your core details to improve matching evidence.</p>
+          </aside>
+        </header>
+
+        <div id="profileMessage" class="status-message" role="status" aria-live="polite"></div>
+
+        <section class="profile-core panel" aria-labelledby="profileCoreTitle">
+          <header class="profile-section-head">
+            <div>
+              <p class="eyebrow">Core profile</p>
+              <h2 id="profileCoreTitle">Professional summary</h2>
+              <p id="profileModeCopy">Create the profile required for match previews and applications.</p>
+            </div>
+            <span id="profileModeBadge" class="badge">Not created</span>
+          </header>
+
+          <form id="profileForm" class="profile-form">
+            <div class="form-field field-wide">
+              <label for="headline">Professional headline</label>
+              <input id="headline" name="headline" maxlength="200" placeholder="e.g. .NET developer focused on reliable business systems">
+              <span class="field-help">A short line employers can understand quickly.</span>
+            </div>
+
+            <div class="form-field field-wide">
+              <label for="summary">Professional summary</label>
+              <textarea id="summary" name="summary" maxlength="2000" rows="5" placeholder="Describe your strengths, experience and the work you want to do."></textarea>
+            </div>
+
+            <div class="form-field">
+              <label for="dateOfBirth">Date of birth</label>
+              <input id="dateOfBirth" name="dateOfBirth" type="date">
+            </div>
+
+            <div class="form-field">
+              <label for="gender">Gender</label>
+              <input id="gender" name="gender" maxlength="50" autocomplete="sex" placeholder="Optional">
+            </div>
+
+            <div class="form-field field-wide">
+              <label for="address">Address</label>
+              <input id="address" name="address" maxlength="300" autocomplete="street-address" placeholder="Optional street or area">
+            </div>
+
+            <div class="form-field">
+              <label for="city">City</label>
+              <input id="city" name="city" maxlength="100" autocomplete="address-level2" placeholder="e.g. Colombo">
+            </div>
+
+            <div class="form-field">
+              <label for="country">Country</label>
+              <input id="country" name="country" maxlength="100" autocomplete="country-name" placeholder="e.g. Sri Lanka">
+            </div>
+
+            <div class="form-field">
+              <label for="yearsOfExperience">Total experience</label>
+              <input id="yearsOfExperience" name="yearsOfExperience" type="number" min="0" max="60" step="1" value="0" required>
+              <span class="field-help">Years from 0 to 60.</span>
+            </div>
+
+            <div class="form-field">
+              <label for="expectedSalaryMin">Expected salary minimum</label>
+              <input id="expectedSalaryMin" name="expectedSalaryMin" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Optional">
+            </div>
+
+            <div class="form-field">
+              <label for="expectedSalaryMax">Expected salary maximum</label>
+              <input id="expectedSalaryMax" name="expectedSalaryMax" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Optional">
+            </div>
+
+            <div class="profile-toggles field-wide">
+              <label class="profile-toggle">
+                <input id="isProfilePublic" name="isProfilePublic" type="checkbox" checked>
+                <span><strong>Public profile</strong><small>Allow employers to view your professional evidence.</small></span>
+              </label>
+              <label class="profile-toggle">
+                <input id="isOpenToWork" name="isOpenToWork" type="checkbox" checked>
+                <span><strong>Open to work</strong><small>Show that you are ready for relevant opportunities.</small></span>
+              </label>
+            </div>
+
+            <div class="profile-form-actions field-wide">
+              <button id="saveProfile" class="btn btn-primary" type="submit">Create profile</button>
+              <span id="profileSavedAt" class="field-help"></span>
+            </div>
+          </form>
+        </section>
+
+        <section class="evidence-grid" aria-label="Professional evidence sections">
+          <article class="evidence-section panel" data-kind="skills">
+            <header class="evidence-head">
+              <div><h2>Skills</h2><p>Proficiency and practical experience.</p></div>
+              <button class="btn btn-secondary btn-small" type="button" data-add-kind="skills">Add skill</button>
+            </header>
+            <div id="skillsList" class="evidence-list" aria-live="polite"></div>
+          </article>
+
+          <article class="evidence-section panel" data-kind="education">
+            <header class="evidence-head">
+              <div><h2>Education</h2><p>Qualifications that support your profile.</p></div>
+              <button class="btn btn-secondary btn-small" type="button" data-add-kind="education">Add education</button>
+            </header>
+            <div id="educationList" class="evidence-list" aria-live="polite"></div>
+          </article>
+
+          <article class="evidence-section panel" data-kind="experience">
+            <header class="evidence-head">
+              <div><h2>Experience</h2><p>Roles, employers and outcomes.</p></div>
+              <button class="btn btn-secondary btn-small" type="button" data-add-kind="experience">Add experience</button>
+            </header>
+            <div id="experienceList" class="evidence-list" aria-live="polite"></div>
+          </article>
+
+          <article class="evidence-section panel" data-kind="projects">
+            <header class="evidence-head">
+              <div><h2>Projects</h2><p>Proof of what you can build and deliver.</p></div>
+              <button class="btn btn-secondary btn-small" type="button" data-add-kind="projects">Add project</button>
+            </header>
+            <div id="projectsList" class="evidence-list" aria-live="polite"></div>
+          </article>
+
+          <article class="evidence-section panel" data-kind="certifications">
+            <header class="evidence-head">
+              <div><h2>Certifications</h2><p>Professional credentials and validity.</p></div>
+              <button class="btn btn-secondary btn-small" type="button" data-add-kind="certifications">Add certification</button>
+            </header>
+            <div id="certificationsList" class="evidence-list" aria-live="polite"></div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="recordDialog" class="record-dialog" aria-labelledby="recordDialogTitle">
+    <form id="recordForm" method="dialog" class="record-form">
+      <header class="record-dialog-head">
+        <div>
+          <p id="recordDialogEyebrow" class="eyebrow">Professional evidence</p>
+          <h2 id="recordDialogTitle">Add record</h2>
+        </div>
+        <button id="closeRecordDialog" class="dialog-close" type="button" aria-label="Close dialog">×</button>
+      </header>
+      <div id="recordFields" class="record-fields"></div>
+      <div id="recordMessage" class="status-message" role="status" aria-live="polite"></div>
+      <footer class="record-dialog-actions">
+        <button id="cancelRecord" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="saveRecord" class="btn btn-primary" type="submit">Save record</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script src="../../assets/api.js"></script>
+  <script src="../../assets/session.js"></script>
+  <script src="../../assets/jobseeker-profile.js"></script>
+</body>
+</html>

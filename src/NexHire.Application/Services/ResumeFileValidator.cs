@@ -23,19 +23,19 @@ public static class ResumeFileValidator
         byte[] content)
     {
         if (string.IsNullOrWhiteSpace(originalFileName))
-            throw new BusinessRuleException("CV file name is required.");
+            throw new ValidationException("CV file name is required.");
 
         if (content is null || content.Length == 0)
-            throw new BusinessRuleException("CV file is empty.");
+            throw new ValidationException("CV file is empty.");
 
         if (content.Length > MaxFileSizeBytes)
-            throw new BusinessRuleException("CV file cannot exceed 5 MB.");
+            throw new ValidationException("CV file cannot exceed 5 MB.");
 
         var safeName = Path.GetFileName(originalFileName);
         var extension = Path.GetExtension(safeName).ToLowerInvariant();
 
         if (extension is not ".pdf" and not ".doc" and not ".docx")
-            throw new BusinessRuleException("Only PDF, DOC and DOCX CV files are allowed.");
+            throw new ValidationException("Only PDF, DOC and DOCX CV files are allowed.");
 
         var valid = extension switch
         {
@@ -46,7 +46,7 @@ public static class ResumeFileValidator
         };
 
         if (!valid)
-            throw new BusinessRuleException("The uploaded file content does not match its file type.");
+            throw new ValidationException("The uploaded file content does not match its file type.");
 
         return extension;
     }

@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Build, upload and manage CVs on NexHire">
+  <title>CV workspace · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/jobseeker.css">
+</head>
+<body data-role="JobSeeker" data-page="resumes">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Job seeker navigation">
+      <div class="sidebar-head">
+        <a class="brand" href="/app/jobseeker/dashboard.html">
+          <span class="brand-mark">NH</span>
+          <span class="brand-name">Nex<strong>Hire</strong></span>
+        </a>
+      </div>
+
+      <div class="workspace-label">Job seeker workspace</div>
+      <ul class="nav-list">
+        <li><a class="nav-link" href="/app/jobseeker/dashboard.html">Overview</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/jobs.html">Find jobs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/applications.html">Applications</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/profile.html">Profile</a></li>
+        <li><a class="nav-link active" aria-current="page" href="/app/jobseeker/resumes.html">CVs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/contacts.html">Contact requests</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/notifications.html">Notifications</a></li>
+      </ul>
+
+      <div class="sidebar-foot">
+        <div class="user-mini">
+          <span class="avatar" data-user-initials>NH</span>
+          <span>
+            <strong data-user-name>NexHire user</strong>
+            <span data-user-role>Job seeker</span>
+          </span>
+        </div>
+        <button class="signout" type="button" data-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <button class="scrim" data-scrim aria-label="Close navigation"></button>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button>
+        <div class="topbar-title">
+          <strong>CV workspace</strong>
+          <span>Builder and uploaded CVs</span>
+        </div>
+        <div class="topbar-actions">
+          <span id="resumesState" class="badge">Loading</span>
+        </div>
+      </header>
+
+      <div class="content resume-content">
+        <header class="resume-hero">
+          <div>
+            <p class="eyebrow">Your application documents</p>
+            <h1>Turn verified evidence into a focused CV.</h1>
+            <p>Build an ATS-friendly CV from your NexHire profile or keep a secure uploaded version ready for applications.</p>
+          </div>
+          <div class="resume-hero-actions">
+            <button id="openUploadResume" class="btn btn-secondary" type="button">Upload CV</button>
+            <button id="openCreateResume" class="btn btn-primary" type="button">Build a CV</button>
+          </div>
+        </header>
+
+        <div id="resumesMessage" class="status-message" role="status" aria-live="polite"></div>
+
+        <section class="resume-summary" aria-label="CV summary">
+          <article class="resume-summary-card">
+            <span>Total CVs</span>
+            <strong id="resumeTotal">0</strong>
+            <small>Builder and uploaded versions</small>
+          </article>
+          <article class="resume-summary-card">
+            <span>Primary CV</span>
+            <strong id="resumePrimary">None</strong>
+            <small>The default document for your workspace</small>
+          </article>
+          <article class="resume-summary-card">
+            <span>Best readiness</span>
+            <strong id="resumeBestScore">0%</strong>
+            <small>Based on your verified profile evidence</small>
+          </article>
+        </section>
+
+        <section class="resume-workbench" aria-label="CV records and selected CV">
+          <div class="resume-list-panel panel">
+            <header class="resume-list-head">
+              <div>
+                <strong id="resumeCount">Your CVs</strong>
+                <span>Primary first, then newest</span>
+              </div>
+              <label class="resume-type-filter">
+                <span class="sr-only">Filter CV type</span>
+                <select id="resumeTypeFilter">
+                  <option value="">All CVs</option>
+                  <option value="builder">Builder CVs</option>
+                  <option value="uploaded">Uploaded CVs</option>
+                </select>
+              </label>
+            </header>
+            <label class="resume-search">
+              <span class="sr-only">Search CVs by name</span>
+              <input id="resumeSearch" type="search" autocomplete="off" placeholder="Search CV name">
+            </label>
+            <div id="resumeList" class="resume-list" aria-live="polite"></div>
+          </div>
+
+          <article id="resumeDetail" class="resume-detail panel" aria-live="polite">
+            <div class="job-detail-placeholder">
+              <span class="placeholder-mark">CV</span>
+              <strong>Select a CV to review its readiness.</strong>
+              <p>Primary status, missing evidence, preview, download and document actions will appear here.</p>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="resumeDialog" class="record-dialog resume-dialog" aria-labelledby="resumeDialogTitle">
+    <form id="resumeForm" class="record-form">
+      <header class="record-dialog-head">
+        <div>
+          <p id="resumeDialogEyebrow" class="eyebrow">CV Builder</p>
+          <h2 id="resumeDialogTitle">Build a CV</h2>
+        </div>
+        <button id="closeResumeDialog" class="dialog-close" type="button" aria-label="Close dialog">×</button>
+      </header>
+
+      <div class="record-fields resume-form-fields">
+        <label class="record-field field-wide">
+          <span>CV name</span>
+          <input id="resumeName" name="resumeName" maxlength="120" required placeholder="e.g. Backend Developer CV">
+        </label>
+        <label id="templateField" class="record-field field-wide">
+          <span>Template</span>
+          <select id="templateId" name="templateId">
+            <option value="">Classic default</option>
+          </select>
+          <small class="field-help">All built-in templates keep the same ATS-readable content structure.</small>
+        </label>
+        <label id="objectiveField" class="record-field field-wide">
+          <span>Career objective</span>
+          <textarea id="careerObjective" name="careerObjective" maxlength="1200" rows="6" placeholder="Write at least 50 characters before generating the CV."></textarea>
+          <small id="objectiveCount" class="field-help">0 / 1200 characters</small>
+        </label>
+        <label id="languagesField" class="record-field field-wide">
+          <span>Languages</span>
+          <input id="languages" name="languages" maxlength="500" placeholder="English, Tamil, Sinhala">
+          <small class="field-help">Comma-separated, maximum 10 unique languages.</small>
+        </label>
+        <label id="linkedInField" class="record-field">
+          <span>LinkedIn URL</span>
+          <input id="linkedInUrl" name="linkedInUrl" type="url" maxlength="500" placeholder="https://linkedin.com/in/...">
+        </label>
+        <label id="gitHubField" class="record-field">
+          <span>GitHub URL</span>
+          <input id="gitHubUrl" name="gitHubUrl" type="url" maxlength="500" placeholder="https://github.com/...">
+        </label>
+        <label id="portfolioField" class="record-field field-wide">
+          <span>Portfolio URL</span>
+          <input id="portfolioUrl" name="portfolioUrl" type="url" maxlength="500" placeholder="https://portfolio.example.com">
+        </label>
+        <label class="record-field record-check field-wide">
+          <input id="resumeIsPrimary" name="isPrimary" type="checkbox">
+          <span>Use this as my primary CV</span>
+        </label>
+      </div>
+
+      <div id="resumeDialogMessage" class="status-message" role="status" aria-live="polite"></div>
+      <footer class="record-dialog-actions">
+        <button id="cancelResume" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="saveResume" class="btn btn-primary" type="submit">Create builder CV</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="uploadDialog" class="record-dialog resume-dialog" aria-labelledby="uploadDialogTitle">
+    <form id="uploadForm" class="record-form">
+      <header class="record-dialog-head">
+        <div>
+          <p class="eyebrow">Secure upload</p>
+          <h2 id="uploadDialogTitle">Upload an existing CV</h2>
+        </div>
+        <button id="closeUploadDialog" class="dialog-close" type="button" aria-label="Close dialog">×</button>
+      </header>
+
+      <div class="record-fields resume-form-fields">
+        <label class="record-field field-wide">
+          <span>CV file</span>
+          <input id="resumeFile" name="file" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+          <small class="field-help">PDF, DOC or DOCX only. Maximum file size: 5 MB.</small>
+        </label>
+        <label class="record-field field-wide">
+          <span>CV name</span>
+          <input id="uploadResumeName" name="resumeName" maxlength="120" placeholder="Optional — file name will be used if blank">
+        </label>
+        <label class="record-field record-check field-wide">
+          <input id="uploadIsPrimary" name="isPrimary" type="checkbox">
+          <span>Use this as my primary CV</span>
+        </label>
+      </div>
+
+      <div id="uploadDialogMessage" class="status-message" role="status" aria-live="polite"></div>
+      <footer class="record-dialog-actions">
+        <button id="cancelUpload" class="btn btn-secondary" type="button">Cancel</button>
+        <button id="saveUpload" class="btn btn-primary" type="submit">Upload CV</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <script src="../../assets/api.js"></script>
+  <script src="../../assets/session.js"></script>
+  <script src="../../assets/jobseeker-resumes.js"></script>
+</body>
+</html>

@@ -51,22 +51,15 @@ public class ResumesController : ControllerBase
         await using var memory = new MemoryStream();
         await file.CopyToAsync(memory, cancellationToken);
 
-        try
-        {
-            var result = await _service.UploadAsync(
-                _currentUser.UserId,
-                file.FileName,
-                memory.ToArray(),
-                resumeName,
-                isPrimary,
-                cancellationToken);
+        var result = await _service.UploadAsync(
+            _currentUser.UserId,
+            file.FileName,
+            memory.ToArray(),
+            resumeName,
+            isPrimary,
+            cancellationToken);
 
-            return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
-        }
-        catch (NexHire.Application.Common.Exceptions.BusinessRuleException ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
     }
 
     [HttpGet("{id:guid}/file")]

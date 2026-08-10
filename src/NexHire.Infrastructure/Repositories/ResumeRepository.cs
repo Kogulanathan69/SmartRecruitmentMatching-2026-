@@ -16,7 +16,6 @@ public class ResumeRepository : IResumeRepository
 
     public Task<ResumeTemplate?> GetActiveTemplateByIdAsync(Guid id) =>
         _context.Set<ResumeTemplate>()
-            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id && t.IsActive);
 
     public async Task<IReadOnlyList<ResumeTemplate>> GetActiveTemplatesAsync() =>

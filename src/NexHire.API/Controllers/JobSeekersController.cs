@@ -91,7 +91,9 @@ public class JobSeekersController : ControllerBase
     [HttpPost("me/education")]
     [Authorize(Roles = RoleNames.JobSeeker)]
     public async Task<IActionResult> AddEducation(AddEducationDto dto) =>
-        Ok(await _service.AddEducationAsync(_currentUser.UserId, dto));
+        StatusCode(
+            StatusCodes.Status201Created,
+            await _service.AddEducationAsync(_currentUser.UserId, dto));
 
     [HttpPut("me/education/{educationId:guid}")]
     [Authorize(Roles = RoleNames.JobSeeker)]
@@ -109,7 +111,9 @@ public class JobSeekersController : ControllerBase
     [HttpPost("me/experience")]
     [Authorize(Roles = RoleNames.JobSeeker)]
     public async Task<IActionResult> AddExperience(AddExperienceDto dto) =>
-        Ok(await _service.AddExperienceAsync(_currentUser.UserId, dto));
+        StatusCode(
+            StatusCodes.Status201Created,
+            await _service.AddExperienceAsync(_currentUser.UserId, dto));
 
     [HttpPut("me/experience/{experienceId:guid}")]
     [Authorize(Roles = RoleNames.JobSeeker)]
@@ -127,7 +131,9 @@ public class JobSeekersController : ControllerBase
     [HttpPost("me/skills")]
     [Authorize(Roles = RoleNames.JobSeeker)]
     public async Task<IActionResult> AddSkill(AddSkillDto dto) =>
-        Ok(await _service.AddSkillAsync(_currentUser.UserId, dto));
+        StatusCode(
+            StatusCodes.Status201Created,
+            await _service.AddSkillAsync(_currentUser.UserId, dto));
 
     [HttpPut("me/skills/{candidateSkillId:guid}")]
     [Authorize(Roles = RoleNames.JobSeeker)]
@@ -145,7 +151,9 @@ public class JobSeekersController : ControllerBase
     [HttpPost("me/projects")]
     [Authorize(Roles = RoleNames.JobSeeker)]
     public async Task<IActionResult> AddProject(AddProjectDto dto) =>
-        Ok(await _service.AddProjectAsync(_currentUser.UserId, dto));
+        StatusCode(
+            StatusCodes.Status201Created,
+            await _service.AddProjectAsync(_currentUser.UserId, dto));
 
     [HttpPut("me/projects/{projectId:guid}")]
     [Authorize(Roles = RoleNames.JobSeeker)]
@@ -163,7 +171,9 @@ public class JobSeekersController : ControllerBase
     [HttpPost("me/certifications")]
     [Authorize(Roles = RoleNames.JobSeeker)]
     public async Task<IActionResult> AddCertification(AddCertificationDto dto) =>
-        Ok(await _service.AddCertificationAsync(_currentUser.UserId, dto));
+        StatusCode(
+            StatusCodes.Status201Created,
+            await _service.AddCertificationAsync(_currentUser.UserId, dto));
 
     [HttpPut("me/certifications/{certificationId:guid}")]
     [Authorize(Roles = RoleNames.JobSeeker)]

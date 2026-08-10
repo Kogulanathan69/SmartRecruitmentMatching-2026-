@@ -21,7 +21,7 @@ public class ResumeFileValidatorTests
     {
         var bytes = Encoding.ASCII.GetBytes("not pdf");
         var action = () => ResumeFileValidator.ValidateAndGetExtension("candidate.pdf", bytes);
-        action.Should().Throw<BusinessRuleException>();
+        action.Should().Throw<ValidationException>();
     }
 
     [Fact]
@@ -48,7 +48,7 @@ public class ResumeFileValidatorTests
     {
         var bytes = Encoding.ASCII.GetBytes("PK fake");
         var action = () => ResumeFileValidator.ValidateAndGetExtension("candidate.docx", bytes);
-        action.Should().Throw<BusinessRuleException>();
+        action.Should().Throw<ValidationException>();
     }
 
     [Fact]
@@ -56,7 +56,7 @@ public class ResumeFileValidatorTests
     {
         var bytes = Encoding.ASCII.GetBytes("sample");
         var action = () => ResumeFileValidator.ValidateAndGetExtension("candidate.exe", bytes);
-        action.Should().Throw<BusinessRuleException>();
+        action.Should().Throw<ValidationException>();
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public class ResumeFileValidatorTests
     {
         var bytes = new byte[ResumeFileValidator.MaxFileSizeBytes + 1];
         var action = () => ResumeFileValidator.ValidateAndGetExtension("candidate.pdf", bytes);
-        action.Should().Throw<BusinessRuleException>();
+        action.Should().Throw<ValidationException>();
     }
 
     private static byte[] CreateDocx()

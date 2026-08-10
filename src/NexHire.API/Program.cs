@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using NexHire.API.Extensions;
+using NexHire.API.Middleware;
 using NexHire.API.Services;
 
 using NexHire.Application.Interfaces.Repositories;
@@ -370,7 +371,7 @@ var app = builder.Build();
 // ----------------------------------------------------
 // 18. ERROR HANDLING + DEVELOPMENT SWAGGER
 // ----------------------------------------------------
-app.UseExceptionHandler();
+app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
