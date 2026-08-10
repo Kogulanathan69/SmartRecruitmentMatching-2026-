@@ -26,6 +26,9 @@ public class ResumeRepository : IResumeRepository
             .OrderBy(t => t.Name)
             .ToListAsync();
 
+    public async Task AddAsync(Resume resume) =>
+        await _context.Set<Resume>().AddAsync(resume);
+
     public void Remove(Resume resume) =>
         _context.Set<Resume>().Remove(resume);
 

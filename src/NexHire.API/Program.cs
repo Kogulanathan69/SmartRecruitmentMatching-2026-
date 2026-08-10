@@ -126,6 +126,10 @@ builder.Services.AddScoped<
     IResumeService,
     ResumeService>();
 
+builder.Services.AddScoped<
+    IResumeFileStorage,
+    LocalResumeFileStorage>();
+
 builder.Services.AddAutoMapper(
     cfg => { },
     typeof(JobSeekerMappingProfile).Assembly);

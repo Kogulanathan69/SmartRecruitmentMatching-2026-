@@ -11,11 +11,16 @@ public class ResumeService : IResumeService
 {
     private readonly IJobSeekerRepository _jobSeekerRepository;
     private readonly IResumeRepository _resumeRepository;
+    private readonly IResumeFileStorage _fileStorage;
 
-    public ResumeService(IJobSeekerRepository jobSeekerRepository, IResumeRepository resumeRepository)
+    public ResumeService(
+        IJobSeekerRepository jobSeekerRepository,
+        IResumeRepository resumeRepository,
+        IResumeFileStorage fileStorage)
     {
         _jobSeekerRepository = jobSeekerRepository;
         _resumeRepository = resumeRepository;
+        _fileStorage = fileStorage;
     }
 
     public async Task<IReadOnlyList<ResumeResponseDto>> GetMyResumesAsync(Guid userId)
@@ -30,6 +35,98 @@ public class ResumeService : IResumeService
 
     public async Task<ResumeResponseDto> GetByIdAsync(Guid userId, Guid resumeId) =>
         Map(await GetOwnedResumeAsync(userId, resumeId));
+
+    public async Task<ResumeResponseDto> UploadAsync(
+        Guid userId,
+        string originalFileName,
+        byte[] content,
+        string? resumeName,
+        bool isPrimary,
+        CancellationToken cancellationToken = default)
+    {
+        var profile = await GetDetailedProfileAsync(userId);
+        var extension = ResumeFileValidator.ValidateAndGetExtension(originalFileName, content);
+
+        var defaultName = Path.GetFileNameWithoutExtension(Path.GetFileName(originalFileName));
+        var cleanName = string.IsNullOrWhiteSpace(resumeName) ? defaultName.Trim() : resumeName.Trim();
+
+        if (string.IsNullOrWhiteSpace(cleanName))
+            throw new BusinessRuleException("Resume name is required.");
+
+        if (cleanName.Length > 120)
+            throw new BusinessRuleException("Resume name cannot exceed 120 characters.");
+
+        if (profile.Resumes.Any(r => r.ResumeName.Equals(cleanName, StringComparison.OrdinalIgnoreCase)))
+            throw new BusinessRuleException("A resume with this name already exists.");
+
+        if (isPrimary)
+        {
+            foreach (var existing in profile.Resumes)
+                existing.IsPrimary = false;
+        }
+
+        var resume = new Resume
+        {
+            Id = Guid.NewGuid(),
+            JobSeekerProfileId = profile.Id,
+            ResumeName = cleanName,
+            IsPrimary = isPrimary || profile.Resumes.Count == 0,
+            IsGenerated = false,
+            CreatedAt = DateTime.UtcNow,
+            UploadedAt = DateTime.UtcNow
+        };
+
+        string? storageKey = null;
+
+        try
+        {
+            storageKey = await _fileStorage.SaveAsync(userId, extension, content, cancellationToken);
+            resume.FileName = storageKey;
+            resume.FileUrl = $"/api/resumes/{resume.Id}/file";
+
+            await _resumeRepository.AddAsync(resume);
+            ApplyCompleteness(resume, profile);
+            await _resumeRepository.SaveChangesAsync();
+            return Map(resume);
+        }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(storageKey))
+                await _fileStorage.DeleteAsync(storageKey, cancellationToken);
+
+            throw;
+        }
+    }
+
+    public async Task<ResumeFileDownloadDto> DownloadUploadedAsync(
+        Guid userId,
+        Guid resumeId,
+        CancellationToken cancellationToken = default)
+    {
+        var resume = await GetOwnedResumeAsync(userId, resumeId);
+
+        if (!IsUploadedFile(resume))
+            throw new BusinessRuleException("This resume does not contain an uploaded CV file.");
+
+        byte[] content;
+        try
+        {
+            content = await _fileStorage.ReadAsync(resume.FileName, cancellationToken);
+        }
+        catch (FileNotFoundException)
+        {
+            throw new NotFoundException("Uploaded CV file was not found.");
+        }
+
+        var extension = Path.GetExtension(resume.FileName);
+
+        return new ResumeFileDownloadDto
+        {
+            Content = content,
+            ContentType = ResumeFileValidator.GetContentType(extension),
+            DownloadName = $"{SafeFileName(resume.ResumeName)}{extension}"
+        };
+    }
 
     public async Task<ResumeResponseDto> CreateAsync(Guid userId, CreateResumeDto dto)
     {
@@ -65,7 +162,7 @@ public class ResumeService : IResumeService
             UploadedAt = DateTime.UtcNow
         };
 
-        profile.Resumes.Add(resume);
+        await _resumeRepository.AddAsync(resume);
         ApplyCompleteness(resume, profile);
         await _resumeRepository.SaveChangesAsync();
         return Map(resume);
@@ -99,10 +196,15 @@ public class ResumeService : IResumeService
         resume.GitHubUrl = Clean(dto.GitHubUrl);
         resume.PortfolioUrl = Clean(dto.PortfolioUrl);
         resume.IsPrimary = dto.IsPrimary || resume.IsPrimary;
-        resume.IsGenerated = false;
-        resume.GeneratedHtml = null;
-        resume.FileName = string.Empty;
-        resume.FileUrl = string.Empty;
+
+        if (!IsUploadedFile(resume))
+        {
+            resume.IsGenerated = false;
+            resume.GeneratedHtml = null;
+            resume.FileName = string.Empty;
+            resume.FileUrl = string.Empty;
+        }
+
         resume.UpdatedAt = DateTime.UtcNow;
 
         ApplyCompleteness(resume, profile);
@@ -115,6 +217,8 @@ public class ResumeService : IResumeService
         var profile = await GetDetailedProfileAsync(userId);
         var resume = profile.Resumes.FirstOrDefault(r => r.Id == resumeId)
             ?? throw new NotFoundException("Resume not found.");
+
+        var uploadedStorageKey = IsUploadedFile(resume) ? resume.FileName : null;
 
         _resumeRepository.Remove(resume);
 
@@ -129,6 +233,18 @@ public class ResumeService : IResumeService
         }
 
         await _resumeRepository.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(uploadedStorageKey))
+        {
+            try
+            {
+                await _fileStorage.DeleteAsync(uploadedStorageKey);
+            }
+            catch (IOException)
+            {
+                // Database deletion remains successful; stale local file can be cleaned later.
+            }
+        }
     }
 
     public async Task<ResumeCompletenessDto> GetCompletenessAsync(Guid userId, Guid? resumeId = null)
@@ -149,6 +265,9 @@ public class ResumeService : IResumeService
         var profile = await GetDetailedProfileAsync(userId);
         var resume = profile.Resumes.FirstOrDefault(r => r.Id == resumeId)
             ?? throw new NotFoundException("Resume not found.");
+
+        if (IsUploadedFile(resume))
+            throw new BusinessRuleException("Uploaded CVs cannot be regenerated by the CV Builder. Create a builder CV instead.");
 
         var completeness = CalculateCompleteness(resume, profile);
 
@@ -377,6 +496,11 @@ h2{{font-size:17px;color:#2c5ff6;border-bottom:1px solid #dfe5ee;padding-bottom:
             : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static bool IsUploadedFile(Resume resume) =>
+        !string.IsNullOrWhiteSpace(resume.FileName) &&
+        !string.IsNullOrWhiteSpace(resume.FileUrl) &&
+        resume.FileUrl.EndsWith("/file", StringComparison.OrdinalIgnoreCase);
 
     private static string SafeFileName(string value) =>
         string.Concat(value.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));
