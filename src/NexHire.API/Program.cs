@@ -51,6 +51,31 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 // ----------------------------------------------------
+// NEXHIRE PRODUCTION CONFIGURATION GUARD
+// ----------------------------------------------------
+if (!builder.Environment.IsDevelopment())
+{
+    var jwtKey = builder.Configuration["Jwt:Key"];
+
+    if (string.IsNullOrWhiteSpace(jwtKey) ||
+        jwtKey.StartsWith(
+            "CHANGE_ME",
+            StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            "Production requires a secure Jwt:Key from environment variables or a secret store.");
+    }
+
+    if (connectionString.Contains(
+        "(localdb)",
+        StringComparison.OrdinalIgnoreCase))
+    {
+        throw new InvalidOperationException(
+            "Production cannot use the LocalDB development connection string.");
+    }
+}
+
+// ----------------------------------------------------
 // 4. AUTHENTICATION
 // ----------------------------------------------------
 builder.Services.AddNexHireAuthentication(
@@ -261,14 +286,46 @@ builder.Services.AddAuthorization();
 // ----------------------------------------------------
 // 17. CORS
 // ----------------------------------------------------
+var productionAllowedOrigins =
+    builder.Configuration
+        .GetSection("Cors:AllowedOrigins")
+        .GetChildren()
+        .Select(item => item.Value)
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Cast<string>()
+        .ToArray();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "AllowFrontend",
         policy =>
         {
+            if (builder.Environment.IsDevelopment())
+            {
+                policy
+                    .AllowAnyOrigin()
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+
+                return;
+            }
+
+            if (productionAllowedOrigins.Length > 0)
+            {
+                policy
+                    .WithOrigins(productionAllowedOrigins)
+                    .AllowAnyHeader()
+                    .AllowAnyMethod();
+
+                return;
+            }
+
+            // The production frontend is normally served from the
+            // same origin as the API, so no cross-origin access is
+            // granted unless Cors:AllowedOrigins is configured.
             policy
-                .AllowAnyOrigin()
+                .SetIsOriginAllowed(_ => false)
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
@@ -311,20 +368,23 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 // ----------------------------------------------------
-// 18. SWAGGER
+// 18. ERROR HANDLING + DEVELOPMENT SWAGGER
 // ----------------------------------------------------
 app.UseExceptionHandler();
 
-app.UseSwagger();
-
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment())
 {
-    options.SwaggerEndpoint(
-        "/swagger/v1/swagger.json",
-        "NexHire API v1");
+    app.UseSwagger();
 
-    options.RoutePrefix = "swagger";
-});
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint(
+            "/swagger/v1/swagger.json",
+            "NexHire API v1");
+
+        options.RoutePrefix = "swagger";
+    });
+}
 
 // ----------------------------------------------------
 // 19. HTTPS
@@ -364,6 +424,11 @@ app.Use(async (context, next) =>
 
     await next();
 });
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
 
 // ----------------------------------------------------
