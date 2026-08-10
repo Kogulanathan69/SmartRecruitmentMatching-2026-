@@ -14,10 +14,4 @@ public class UpdateJobSeekerProfileDto
     public decimal? ExpectedSalaryMax { get; set; }
     public bool? IsProfilePublic { get; set; }
     public bool? IsOpenToWork { get; set; }
-
-    // PUT keeps omitted values for backward compatibility. These flags
-    // allow clients to intentionally clear nullable profile fields.
-    public bool ClearDateOfBirth { get; set; }
-    public bool ClearExpectedSalaryMin { get; set; }
-    public bool ClearExpectedSalaryMax { get; set; }
 }

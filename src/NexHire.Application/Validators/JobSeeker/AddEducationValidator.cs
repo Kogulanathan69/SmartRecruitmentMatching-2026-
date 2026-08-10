@@ -9,7 +9,6 @@ public class AddEducationValidator : AbstractValidator<AddEducationDto>
     {
         RuleFor(x => x.Institution).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Degree).NotEmpty().MaximumLength(150);
-        RuleFor(x => x.EducationLevel).InclusiveBetween(1, 6);
         RuleFor(x => x.FieldOfStudy).MaximumLength(150);
         RuleFor(x => x.GradeOrGpa).MaximumLength(50);
         RuleFor(x => x.StartDate).NotEmpty();

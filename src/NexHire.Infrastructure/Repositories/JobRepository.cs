@@ -133,11 +133,7 @@ public sealed class JobRepository : IJobRepository
         }
 
         var page = Math.Max(1, search.Page);
-
-        var pageSize = Math.Clamp(
-            search.PageSize,
-            1,
-            50);
+        var pageSize = Math.Clamp(search.PageSize, 1, 50);
 
         return await query
             .OrderByDescending(job =>
@@ -217,7 +213,6 @@ public sealed class JobRepository : IJobRepository
     public Task<int> SaveChangesAsync(
         CancellationToken cancellationToken = default)
     {
-        return _context.SaveChangesAsync(
-            cancellationToken);
+        return _context.SaveChangesAsync(cancellationToken);
     }
 }

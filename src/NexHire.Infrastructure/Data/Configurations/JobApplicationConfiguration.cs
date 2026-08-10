@@ -7,36 +7,50 @@ namespace NexHire.Infrastructure.Data.Configurations;
 public class JobApplicationConfiguration
     : IEntityTypeConfiguration<JobApplication>
 {
-    public void Configure(EntityTypeBuilder<JobApplication> builder)
+    public void Configure(
+        EntityTypeBuilder<JobApplication> builder)
     {
         builder.ToTable("JobApplications");
 
-        builder.HasKey(a => a.JobApplicationId);
+        builder.HasKey(x => x.JobApplicationId);
 
-        builder.Property(a => a.Status)
-            .HasMaxLength(50)
-            .IsRequired();
+        builder.Property(x => x.Status)
+            .IsRequired()
+            .HasMaxLength(40);
 
-        // CandidateId stores the Job Seeker's UserId.
-        // Link it to JobSeekerProfile.UserId instead of creating
-        // an unwanted shadow JobSeekerProfileId property.
-        builder.HasOne<JobSeekerProfile>()
-            .WithMany(p => p.Applications)
-            .HasForeignKey(a => a.CandidateId)
-            .HasPrincipalKey(p => p.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(x => x.IdempotencyKey)
+            .IsRequired()
+            .HasMaxLength(100);
 
-        // VacancyId represents the Job.Id.
-        builder.HasOne<Job>()
+        builder.Property(x => x.MatchRuleVersion)
+            .IsRequired()
+            .HasMaxLength(20);
+
+        builder.Property(x => x.MatchScoreSnapshot)
+            .HasPrecision(5, 2);
+
+        builder.HasIndex(x => new
+        {
+            x.CandidateId,
+            x.VacancyId
+        })
+        .IsUnique();
+
+        builder.HasIndex(x => new
+        {
+            x.CandidateId,
+            x.IdempotencyKey
+        })
+        .IsUnique();
+
+        builder.HasOne(x => x.Candidate)
             .WithMany()
-            .HasForeignKey(a => a.VacancyId)
+            .HasForeignKey(x => x.CandidateId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(a => a.CandidateId);
-        builder.HasIndex(a => a.VacancyId);
-
-        // Database safety net against simultaneous duplicate applications.
-        builder.HasIndex(a => new { a.CandidateId, a.VacancyId })
-            .IsUnique();
+        builder.HasOne(x => x.Vacancy)
+            .WithMany()
+            .HasForeignKey(x => x.VacancyId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

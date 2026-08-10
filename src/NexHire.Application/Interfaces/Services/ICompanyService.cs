@@ -17,6 +17,9 @@ public interface ICompanyService
     Task<IReadOnlyList<CompanyResponseDto>>
         GetPendingVerificationAsync();
 
+    Task<IReadOnlyList<CompanyResponseDto>>
+        GetPendingAsync();
+
     Task<CompanyResponseDto> UpdateCompanyAsync(
         Guid companyId,
         Guid userId,

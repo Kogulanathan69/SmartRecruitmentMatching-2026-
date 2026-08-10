@@ -1,0 +1,7 @@
+
+function side(role){let common=`<a class="brand" href="../index.html">NexHire</a><div class="role">${role}</div><a href="dashboard.html">Dashboard</a>`;
+if(role==="Job Seeker") common+=`<a href="profile.html">My Profile</a><a href="jobs.html">Find Jobs</a><a href="applications.html">Applications</a><a href="resumes.html">Resumes</a><a href="matching.html">Matching</a><a href="privacy.html">Privacy</a>`;
+if(role==="Employer") common+=`<a href="company.html">Company</a><a href="jobs.html">Job Management</a><a href="applications.html">Candidates</a><a href="matching.html">Rankings</a><a href="reports.html">Reports</a>`;
+if(role==="Admin") common+=`<a href="users.html">Users</a><a href="companies.html">Company Verification</a><a href="matching-rules.html">Matching Rules</a><a href="reports.html">Reports</a><a href="audit.html">Audit</a><a href="privacy.html">Privacy</a>`;
+return common+`<a href="../shared/notifications.html">Notifications</a><a href="../shared/api-console.html">All API Endpoints</a><a href="#" onclick="logout()">Logout</a>`}
+async function dash(role){document.getElementById("side").innerHTML=side(role);let path=role==="Job Seeker"?"/api/dashboard/jobseeker":role==="Employer"?"/api/dashboard/employer":"/api/dashboard/admin";try{let d=await request(path);document.getElementById("data").textContent=pretty(d)}catch(x){document.getElementById("data").textContent=x.message}}

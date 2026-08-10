@@ -3,7 +3,6 @@ using NexHire.Application.Common.Exceptions;
 using NexHire.Application.DTOs.JobSeeker;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
-using NexHire.Application.Validators.JobSeeker;
 using NexHire.Domain.Entities;
 
 namespace NexHire.Application.Services;
@@ -38,10 +37,10 @@ public class JobSeekerService : IJobSeekerService
 
     public async Task<JobSeekerProfileResponseDto> CreateProfileAsync(Guid userId, CreateJobSeekerProfileDto dto)
     {
-        ValidateDto(new CreateJobSeekerProfileValidator(), dto);
-
         if (await _repository.GetByUserIdAsync(userId) is not null)
             throw new BusinessRuleException("A job seeker profile already exists for this user.");
+
+        ValidateProfile(dto.YearsOfExperience, dto.DateOfBirth, dto.ExpectedSalaryMin, dto.ExpectedSalaryMax);
 
         var profile = _mapper.Map<JobSeekerProfile>(dto);
         profile.Id = Guid.NewGuid();
@@ -56,28 +55,15 @@ public class JobSeekerService : IJobSeekerService
 
     public async Task<JobSeekerProfileResponseDto> UpdateProfileAsync(Guid userId, UpdateJobSeekerProfileDto dto)
     {
-        ValidateDto(new UpdateJobSeekerProfileValidator(), dto);
         var profile = await GetOwnedProfileAsync(userId);
 
         var years = dto.YearsOfExperience ?? profile.YearsOfExperience;
-        var dob = dto.ClearDateOfBirth
-            ? null
-            : dto.DateOfBirth ?? profile.DateOfBirth;
-        var minSalary = dto.ClearExpectedSalaryMin
-            ? null
-            : dto.ExpectedSalaryMin ?? profile.ExpectedSalaryMin;
-        var maxSalary = dto.ClearExpectedSalaryMax
-            ? null
-            : dto.ExpectedSalaryMax ?? profile.ExpectedSalaryMax;
+        var dob = dto.DateOfBirth ?? profile.DateOfBirth;
+        var minSalary = dto.ExpectedSalaryMin ?? profile.ExpectedSalaryMin;
+        var maxSalary = dto.ExpectedSalaryMax ?? profile.ExpectedSalaryMax;
         ValidateProfile(years, dob, minSalary, maxSalary);
 
         _mapper.Map(dto, profile);
-        if (dto.ClearDateOfBirth)
-            profile.DateOfBirth = null;
-        if (dto.ClearExpectedSalaryMin)
-            profile.ExpectedSalaryMin = null;
-        if (dto.ClearExpectedSalaryMax)
-            profile.ExpectedSalaryMax = null;
         profile.UpdatedAt = DateTime.UtcNow;
         _repository.Update(profile);
         await _repository.SaveChangesAsync();
@@ -87,19 +73,19 @@ public class JobSeekerService : IJobSeekerService
 
     public async Task<EducationResponseDto> AddEducationAsync(Guid userId, AddEducationDto dto)
     {
-        ValidateDto(new AddEducationValidator(), dto);
+        ValidateEducation(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var education = _mapper.Map<Education>(dto);
         education.Id = Guid.NewGuid();
         education.JobSeekerProfileId = profile.Id;
-        await _repository.AddEducationAsync(education);
+        profile.Educations.Add(education);
         await _repository.SaveChangesAsync();
         return _mapper.Map<EducationResponseDto>(education);
     }
 
     public async Task<EducationResponseDto> UpdateEducationAsync(Guid userId, Guid educationId, AddEducationDto dto)
     {
-        ValidateDto(new AddEducationValidator(), dto);
+        ValidateEducation(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var education = profile.Educations.FirstOrDefault(x => x.Id == educationId)
             ?? throw new NotFoundException("Education record not found.");
@@ -119,19 +105,19 @@ public class JobSeekerService : IJobSeekerService
 
     public async Task<ExperienceResponseDto> AddExperienceAsync(Guid userId, AddExperienceDto dto)
     {
-        ValidateDto(new AddExperienceValidator(), dto);
+        ValidateExperience(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var experience = _mapper.Map<Experience>(dto);
         experience.Id = Guid.NewGuid();
         experience.JobSeekerProfileId = profile.Id;
-        await _repository.AddExperienceAsync(experience);
+        profile.Experiences.Add(experience);
         await _repository.SaveChangesAsync();
         return _mapper.Map<ExperienceResponseDto>(experience);
     }
 
     public async Task<ExperienceResponseDto> UpdateExperienceAsync(Guid userId, Guid experienceId, AddExperienceDto dto)
     {
-        ValidateDto(new AddExperienceValidator(), dto);
+        ValidateExperience(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var experience = profile.Experiences.FirstOrDefault(x => x.Id == experienceId)
             ?? throw new NotFoundException("Experience record not found.");
@@ -151,7 +137,7 @@ public class JobSeekerService : IJobSeekerService
 
     public async Task<CandidateSkillResponseDto> AddSkillAsync(Guid userId, AddSkillDto dto)
     {
-        ValidateDto(new AddSkillValidator(), dto);
+        ValidateSkill(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var skill = await GetOrCreateSkillAsync(dto.SkillName);
 
@@ -168,14 +154,14 @@ public class JobSeekerService : IJobSeekerService
             YearsOfExperience = dto.YearsOfExperience
         };
 
-        await _repository.AddCandidateSkillAsync(candidateSkill);
+        profile.CandidateSkills.Add(candidateSkill);
         await _repository.SaveChangesAsync();
         return _mapper.Map<CandidateSkillResponseDto>(candidateSkill);
     }
 
     public async Task<CandidateSkillResponseDto> UpdateSkillAsync(Guid userId, Guid candidateSkillId, AddSkillDto dto)
     {
-        ValidateDto(new AddSkillValidator(), dto);
+        ValidateSkill(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var candidateSkill = profile.CandidateSkills.FirstOrDefault(x => x.Id == candidateSkillId)
             ?? throw new NotFoundException("Candidate skill not found.");
@@ -203,19 +189,19 @@ public class JobSeekerService : IJobSeekerService
 
     public async Task<ProjectResponseDto> AddProjectAsync(Guid userId, AddProjectDto dto)
     {
-        ValidateDto(new AddProjectValidator(), dto);
+        ValidateProject(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var project = _mapper.Map<Project>(dto);
         project.Id = Guid.NewGuid();
         project.JobSeekerProfileId = profile.Id;
-        await _repository.AddProjectAsync(project);
+        profile.Projects.Add(project);
         await _repository.SaveChangesAsync();
         return _mapper.Map<ProjectResponseDto>(project);
     }
 
     public async Task<ProjectResponseDto> UpdateProjectAsync(Guid userId, Guid projectId, AddProjectDto dto)
     {
-        ValidateDto(new AddProjectValidator(), dto);
+        ValidateProject(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var project = profile.Projects.FirstOrDefault(x => x.Id == projectId)
             ?? throw new NotFoundException("Project record not found.");
@@ -235,19 +221,19 @@ public class JobSeekerService : IJobSeekerService
 
     public async Task<CertificationResponseDto> AddCertificationAsync(Guid userId, AddCertificationDto dto)
     {
-        ValidateDto(new AddCertificationValidator(), dto);
+        ValidateCertification(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var certification = _mapper.Map<Certification>(dto);
         certification.Id = Guid.NewGuid();
         certification.JobSeekerProfileId = profile.Id;
-        await _repository.AddCertificationAsync(certification);
+        profile.Certifications.Add(certification);
         await _repository.SaveChangesAsync();
         return _mapper.Map<CertificationResponseDto>(certification);
     }
 
     public async Task<CertificationResponseDto> UpdateCertificationAsync(Guid userId, Guid certificationId, AddCertificationDto dto)
     {
-        ValidateDto(new AddCertificationValidator(), dto);
+        ValidateCertification(dto);
         var profile = await GetOwnedProfileAsync(userId);
         var certification = profile.Certifications.FirstOrDefault(x => x.Id == certificationId)
             ?? throw new NotFoundException("Certification record not found.");
@@ -284,26 +270,56 @@ public class JobSeekerService : IJobSeekerService
     private static void ValidateProfile(int years, DateTime? dateOfBirth, decimal? minSalary, decimal? maxSalary)
     {
         if (years is < 0 or > 60)
-            throw new ValidationException("Years of experience must be between 0 and 60.");
+            throw new BusinessRuleException("Years of experience must be between 0 and 60.");
         if (dateOfBirth.HasValue && dateOfBirth.Value.Date > DateTime.UtcNow.Date)
-            throw new ValidationException("Date of birth cannot be in the future.");
+            throw new BusinessRuleException("Date of birth cannot be in the future.");
         if (minSalary.HasValue && minSalary < 0 || maxSalary.HasValue && maxSalary < 0)
-            throw new ValidationException("Expected salary cannot be negative.");
+            throw new BusinessRuleException("Expected salary cannot be negative.");
         if (minSalary.HasValue && maxSalary.HasValue && minSalary > maxSalary)
-            throw new ValidationException("Minimum expected salary cannot be greater than maximum expected salary.");
+            throw new BusinessRuleException("Minimum expected salary cannot be greater than maximum expected salary.");
     }
 
-    private static void ValidateDto<T>(FluentValidation.IValidator<T> validator, T dto)
+    private static void ValidateEducation(AddEducationDto dto)
     {
-        var result = validator.Validate(dto);
-        if (result.IsValid)
-            return;
+        if (string.IsNullOrWhiteSpace(dto.Institution) || string.IsNullOrWhiteSpace(dto.Degree))
+            throw new BusinessRuleException("Institution and degree are required.");
+        if (dto.EndDate.HasValue && dto.EndDate.Value.Date < dto.StartDate.Date)
+            throw new BusinessRuleException("Education end date cannot be earlier than start date.");
+    }
 
-        var message = string.Join(
-            " ",
-            result.Errors
-                .Select(error => error.ErrorMessage)
-                .Distinct(StringComparer.Ordinal));
-        throw new ValidationException(message);
+    private static void ValidateExperience(AddExperienceDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.CompanyName) || string.IsNullOrWhiteSpace(dto.JobTitle))
+            throw new BusinessRuleException("Company name and job title are required.");
+        if (dto.IsCurrent && dto.EndDate.HasValue)
+            throw new BusinessRuleException("Current experience must not have an end date.");
+        if (dto.EndDate.HasValue && dto.EndDate.Value.Date < dto.StartDate.Date)
+            throw new BusinessRuleException("Experience end date cannot be earlier than start date.");
+    }
+
+    private static void ValidateSkill(AddSkillDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.SkillName))
+            throw new BusinessRuleException("Skill name is required.");
+        if (dto.ProficiencyLevel is < 1 or > 5)
+            throw new BusinessRuleException("Proficiency level must be between 1 and 5.");
+        if (dto.YearsOfExperience is < 0 or > 60)
+            throw new BusinessRuleException("Skill years of experience must be between 0 and 60.");
+    }
+
+    private static void ValidateProject(AddProjectDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Title))
+            throw new BusinessRuleException("Project title is required.");
+        if (dto.StartDate.HasValue && dto.EndDate.HasValue && dto.EndDate.Value.Date < dto.StartDate.Value.Date)
+            throw new BusinessRuleException("Project end date cannot be earlier than start date.");
+    }
+
+    private static void ValidateCertification(AddCertificationDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Name))
+            throw new BusinessRuleException("Certification name is required.");
+        if (dto.IssueDate.HasValue && dto.ExpiryDate.HasValue && dto.ExpiryDate.Value.Date < dto.IssueDate.Value.Date)
+            throw new BusinessRuleException("Certification expiry date cannot be earlier than issue date.");
     }
 }

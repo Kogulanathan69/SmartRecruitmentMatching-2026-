@@ -357,6 +357,8 @@ public sealed class JobService : IJobService
         job.UpdatedAtUtc =
             DateTime.UtcNow;
 
+        _jobs.Update(job);
+
         await _jobs.SaveChangesAsync(
             cancellationToken);
 
@@ -431,7 +433,7 @@ public sealed class JobService : IJobService
             job.RequiredSkills.Add(
                 new JobRequiredSkill
                 {
-                    Id = Guid.Empty,
+                    Id = Guid.NewGuid(),
                     JobId = job.Id,
                     SkillId = skill.Id,
                     Skill = skill,
@@ -450,7 +452,7 @@ public sealed class JobService : IJobService
             job.PreferredSkills.Add(
                 new JobPreferredSkill
                 {
-                    Id = Guid.Empty,
+                    Id = Guid.NewGuid(),
                     JobId = job.Id,
                     SkillId = skill.Id,
                     Skill = skill,

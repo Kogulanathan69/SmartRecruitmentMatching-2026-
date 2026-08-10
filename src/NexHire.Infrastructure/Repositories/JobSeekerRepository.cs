@@ -41,21 +41,6 @@ public class JobSeekerRepository : IJobSeekerRepository
     public async Task AddSkillAsync(Skill skill) =>
         await _context.Set<Skill>().AddAsync(skill);
 
-    public async Task AddEducationAsync(Education education) =>
-        await _context.Set<Education>().AddAsync(education);
-
-    public async Task AddExperienceAsync(Experience experience) =>
-        await _context.Set<Experience>().AddAsync(experience);
-
-    public async Task AddCandidateSkillAsync(CandidateSkill candidateSkill) =>
-        await _context.Set<CandidateSkill>().AddAsync(candidateSkill);
-
-    public async Task AddProjectAsync(Project project) =>
-        await _context.Set<Project>().AddAsync(project);
-
-    public async Task AddCertificationAsync(Certification certification) =>
-        await _context.Set<Certification>().AddAsync(certification);
-
     public void RemoveEducation(Education education) =>
         _context.Set<Education>().Remove(education);
 
@@ -75,7 +60,6 @@ public class JobSeekerRepository : IJobSeekerRepository
 
     private IQueryable<JobSeekerProfile> DetailsQuery() =>
         _context.Set<JobSeekerProfile>()
-            .AsSplitQuery()
             .Include(p => p.User)
             .Include(p => p.Educations)
             .Include(p => p.Experiences)

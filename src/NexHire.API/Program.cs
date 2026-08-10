@@ -1,10 +1,8 @@
-using Microsoft.AspNetCore.RateLimiting;
-using System.Threading.RateLimiting;
-using FluentValidation;
+using NexHire.Infrastructure.Privacy;
+using NexHire.API.Middleware;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using NexHire.API.Extensions;
-using NexHire.API.Middleware;
 using NexHire.API.Services;
 
 using NexHire.Application.Interfaces.Repositories;
@@ -12,11 +10,13 @@ using NexHire.Application.Interfaces.Services;
 using NexHire.Application.Mappings;
 using NexHire.Application.Matching;
 using NexHire.Application.Services;
-using NexHire.Application.Validators;
 
 using NexHire.Infrastructure.Data;
 using NexHire.Infrastructure.Matching;
 using NexHire.Infrastructure.Repositories;
+using NexHire.Infrastructure.Reports;
+using NexHire.Infrastructure.Notifications;
+using NexHire.Infrastructure.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,9 +24,6 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. CONTROLLERS
 // ----------------------------------------------------
 builder.Services.AddControllers();
-
-builder.Services.AddValidatorsFromAssemblyContaining<
-    UpdateApplicationStatusRequestValidator>();
 
 // ----------------------------------------------------
 // 2. SWAGGER
@@ -52,31 +49,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 
 // ----------------------------------------------------
-// NEXHIRE PRODUCTION CONFIGURATION GUARD
-// ----------------------------------------------------
-if (!builder.Environment.IsDevelopment())
-{
-    var jwtKey = builder.Configuration["Jwt:Key"];
-
-    if (string.IsNullOrWhiteSpace(jwtKey) ||
-        jwtKey.StartsWith(
-            "CHANGE_ME",
-            StringComparison.OrdinalIgnoreCase))
-    {
-        throw new InvalidOperationException(
-            "Production requires a secure Jwt:Key from environment variables or a secret store.");
-    }
-
-    if (connectionString.Contains(
-        "(localdb)",
-        StringComparison.OrdinalIgnoreCase))
-    {
-        throw new InvalidOperationException(
-            "Production cannot use the LocalDB development connection string.");
-    }
-}
-
-// ----------------------------------------------------
 // 4. AUTHENTICATION
 // ----------------------------------------------------
 builder.Services.AddNexHireAuthentication(
@@ -99,42 +71,49 @@ builder.Services.AddScoped<
     UserRepository>();
 
 // ----------------------------------------------------
-// 7. JOB APPLICATION REPOSITORY
+// 7. EMAIL / OTP SERVICE
+// ----------------------------------------------------
+builder.Services.AddScoped<
+    IEmailSender,
+    SmtpEmailSender>();
+
+// ----------------------------------------------------
+// 8. JOB APPLICATION REPOSITORY
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IJobApplicationRepository,
     JobApplicationRepository>();
 
 // ----------------------------------------------------
-// 8. APPLICATION STATUS HISTORY
+// 9. APPLICATION STATUS HISTORY
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IApplicationStatusHistoryRepository,
     ApplicationStatusHistoryRepository>();
 
 // ----------------------------------------------------
-// 9. CONTACT REQUEST REPOSITORY
+// 10. CONTACT REQUEST REPOSITORY
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IContactRequestRepository,
     ContactRequestRepository>();
 
 // ----------------------------------------------------
-// 10. APPLICATION STATUS SERVICE
+// 11. APPLICATION STATUS SERVICE
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IApplicationStatusService,
     ApplicationStatusService>();
 
 // ----------------------------------------------------
-// 11. CONSENT CONTACT SERVICE
+// 12. CONSENT CONTACT SERVICE
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IConsentContactService,
     ConsentContactService>();
 
 // ----------------------------------------------------
-// 12. JOB SEEKER + RESUME MODULE
+// 13. JOB SEEKER + RESUME MODULE
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IJobSeekerRepository,
@@ -152,16 +131,12 @@ builder.Services.AddScoped<
     IResumeService,
     ResumeService>();
 
-builder.Services.AddScoped<
-    IResumeFileStorage,
-    LocalResumeFileStorage>();
-
 builder.Services.AddAutoMapper(
     cfg => { },
     typeof(JobSeekerMappingProfile).Assembly);
 
 // ----------------------------------------------------
-// 13. MATCHING ENGINE
+// 14. MATCHING ENGINE
 // ----------------------------------------------------
 
 // Eligibility
@@ -206,17 +181,10 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     CandidateComparisonEngine>();
 
-
-
 // Main matching facade
 builder.Services.AddScoped<
     IMatchingEngine,
     MatchingEngine>();
-
-// Matching repository
-builder.Services.AddScoped<
-    IMatchingRepository,
-    MatchingRepository>();
 
 // Matching service
 builder.Services.AddScoped<
@@ -224,14 +192,14 @@ builder.Services.AddScoped<
     MatchingService>();
 
 // ----------------------------------------------------
-// 14. ADMIN MODULE
+// 15. ADMIN MODULE
 // ----------------------------------------------------
 builder.Services.AddScoped<
     IAdminService,
     AdminService>();
 
 // ----------------------------------------------------
-// 15. COMPANY MODULE
+// 16. COMPANY MODULE
 // ----------------------------------------------------
 builder.Services.AddScoped<
     ICompanyRepository,
@@ -246,8 +214,10 @@ builder.Services.AddScoped<
     CompanyService>();
 
 // ----------------------------------------------------
-// CORE JOB / APPLICATION MODULE
+// 17. CORE COMPLETION MODULES
 // ----------------------------------------------------
+
+// Jobs
 builder.Services.AddScoped<
     IJobRepository,
     JobRepository>();
@@ -256,6 +226,7 @@ builder.Services.AddScoped<
     IJobService,
     JobService>();
 
+// Applications
 builder.Services.AddScoped<
     IApplicationRepository,
     ApplicationRepository>();
@@ -264,13 +235,23 @@ builder.Services.AddScoped<
     IApplicationService,
     ApplicationService>();
 
+// Core Matching
 builder.Services.AddScoped<
-    INotificationRepository,
-    NotificationRepository>();
+    ICoreMatchingService,
+    CoreMatchingService>();
+
+// Notifications
+builder.Services.AddScoped<
+    INotificationWriter,
+    NotificationWriter>();
 
 builder.Services.AddScoped<
     INotificationService,
-    NotificationService>();
+    NexHire.Infrastructure.Notifications.NotificationService>();
+
+builder.Services.AddScoped<
+    INotificationRepository,
+    NotificationRepository>();
 
 builder.Services.AddScoped<
     IDashboardRepository,
@@ -279,54 +260,41 @@ builder.Services.AddScoped<
 builder.Services.AddScoped<
     IDashboardService,
     DashboardService>();
+
+builder.Services.AddHostedService<
+    OutboxWorker>();
+
+// Reports
+builder.Services.AddScoped<
+    IReportService,
+    ReportService>();
+
+// Privacy
+builder.Services.AddScoped<
+    IPrivacyService,
+    PrivacyService>();
+
+// Audit
+builder.Services.AddScoped<
+    IAuditLogRepository,
+    AuditLogRepository>();
+
 // ----------------------------------------------------
-// 16. AUTHORIZATION
+// 18. AUTHORIZATION
 // ----------------------------------------------------
 builder.Services.AddAuthorization();
 
 // ----------------------------------------------------
-// 17. CORS
+// 19. CORS
 // ----------------------------------------------------
-var productionAllowedOrigins =
-    builder.Configuration
-        .GetSection("Cors:AllowedOrigins")
-        .GetChildren()
-        .Select(item => item.Value)
-        .Where(value => !string.IsNullOrWhiteSpace(value))
-        .Cast<string>()
-        .ToArray();
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(
         "AllowFrontend",
         policy =>
         {
-            if (builder.Environment.IsDevelopment())
-            {
-                policy
-                    .AllowAnyOrigin()
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
-
-                return;
-            }
-
-            if (productionAllowedOrigins.Length > 0)
-            {
-                policy
-                    .WithOrigins(productionAllowedOrigins)
-                    .AllowAnyHeader()
-                    .AllowAnyMethod();
-
-                return;
-            }
-
-            // The production frontend is normally served from the
-            // same origin as the API, so no cross-origin access is
-            // granted unless Cors:AllowedOrigins is configured.
             policy
-                .SetIsOriginAllowed(_ => false)
+                .AllowAnyOrigin()
                 .AllowAnyHeader()
                 .AllowAnyMethod();
         });
@@ -335,110 +303,47 @@ builder.Services.AddCors(options =>
 // ----------------------------------------------------
 // BUILD APP
 // ----------------------------------------------------
-
-// ----------------------------------------------------
-// NEXHIRE FINAL HARDENING SERVICES
-// ----------------------------------------------------
-
-// Standard safe error responses for unexpected failures.
-builder.Services.AddProblemDetails();
-
-// Protect authentication endpoints from excessive requests.
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode =
-        StatusCodes.Status429TooManyRequests;
-
-    options.AddPolicy(
-        "auth",
-        httpContext =>
-            RateLimitPartition.GetFixedWindowLimiter(
-                partitionKey:
-                    httpContext.Connection.RemoteIpAddress?.ToString()
-                    ?? "unknown",
-
-                factory: _ =>
-                    new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = 20,
-                        Window = TimeSpan.FromMinutes(1),
-                        QueueLimit = 0,
-                        AutoReplenishment = true
-                    }));
-});
 var app = builder.Build();
 
 // ----------------------------------------------------
-// 18. ERROR HANDLING + DEVELOPMENT SWAGGER
+// 20. CUSTOM MIDDLEWARE
 // ----------------------------------------------------
-app.UseMiddleware<ExceptionMiddleware>();
+app.UseMiddleware<
+    CorrelationIdMiddleware>();
 
-if (app.Environment.IsDevelopment())
+app.UseMiddleware<
+    SecurityHeadersMiddleware>();
+
+app.UseMiddleware<
+    ExceptionMiddleware>();
+
+// ----------------------------------------------------
+// 21. SWAGGER
+// ----------------------------------------------------
+app.UseSwagger();
+
+app.UseSwaggerUI(options =>
 {
-    app.UseSwagger();
+    options.SwaggerEndpoint(
+        "/swagger/v1/swagger.json",
+        "NexHire API v1");
 
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint(
-            "/swagger/v1/swagger.json",
-            "NexHire API v1");
-
-        options.RoutePrefix = "swagger";
-    });
-}
-
-// ----------------------------------------------------
-// 19. HTTPS
-// ----------------------------------------------------
-
-// ----------------------------------------------------
-// CORRELATION ID + SECURITY HEADERS
-// ----------------------------------------------------
-app.Use(async (context, next) =>
-{
-    var incomingCorrelationId =
-        context.Request.Headers["X-Correlation-ID"]
-            .FirstOrDefault();
-
-    var correlationId =
-        string.IsNullOrWhiteSpace(incomingCorrelationId)
-            ? Guid.NewGuid().ToString("N")
-            : incomingCorrelationId;
-
-    context.Items["CorrelationId"] =
-        correlationId;
-
-    context.Response.Headers["X-Correlation-ID"] =
-        correlationId;
-
-    context.Response.Headers["X-Content-Type-Options"] =
-        "nosniff";
-
-    context.Response.Headers["X-Frame-Options"] =
-        "DENY";
-
-    context.Response.Headers["Referrer-Policy"] =
-        "strict-origin-when-cross-origin";
-
-    context.Response.Headers["Permissions-Policy"] =
-        "camera=(), microphone=(), geolocation=()";
-
-    await next();
+    options.RoutePrefix = "swagger";
 });
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHsts();
-}
 
+// ----------------------------------------------------
+// 22. HTTPS
+// ----------------------------------------------------
 app.UseHttpsRedirection();
 
 // ----------------------------------------------------
-// 20. CORS
+// 23. CORS
 // ----------------------------------------------------
-app.UseCors("AllowFrontend");
+app.UseCors(
+    "AllowFrontend");
 
 // ----------------------------------------------------
-// 21. FRONTEND STATIC FILES
+// 24. FRONTEND STATIC FILES
 // ----------------------------------------------------
 var frontendPath =
     Path.GetFullPath(
@@ -460,86 +365,25 @@ if (Directory.Exists(frontendPath))
 }
 
 // ----------------------------------------------------
-// 22. AUTHENTICATION + AUTHORIZATION
+// 25. AUTHENTICATION + AUTHORIZATION
 // ----------------------------------------------------
-app.UseRateLimiter();
-
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 // ----------------------------------------------------
-// 23. CONTROLLERS
+// 26. CONTROLLERS
 // ----------------------------------------------------
 app.MapControllers();
-// ----------------------------------------------------
-// HEALTH CHECK ENDPOINTS
-// ----------------------------------------------------
-
-app.MapGet(
-    "/health/live",
-    () =>
-        Results.Ok(
-            new
-            {
-                status = "live",
-                service = "NexHire.API",
-                utc = DateTime.UtcNow
-            }))
-    .AllowAnonymous();
-
-app.MapGet(
-    "/health/ready",
-    async (
-        AppDbContext db,
-        CancellationToken cancellationToken) =>
-    {
-        try
-        {
-            var connected =
-                await db.Database.CanConnectAsync(
-                    cancellationToken);
-
-            if (!connected)
-            {
-                return Results.Json(
-                    new
-                    {
-                        status = "not-ready",
-                        database = "unreachable"
-                    },
-                    statusCode:
-                        StatusCodes.Status503ServiceUnavailable);
-            }
-
-            return Results.Ok(
-                new
-                {
-                    status = "ready",
-                    database = "reachable"
-                });
-        }
-        catch
-        {
-            return Results.Json(
-                new
-                {
-                    status = "not-ready",
-                    database = "unreachable"
-                },
-                statusCode:
-                    StatusCodes.Status503ServiceUnavailable);
-        }
-    })
-    .AllowAnonymous();
-
 
 // ----------------------------------------------------
-// 24. DEFAULT PAGE
+// 27. DEFAULT PAGE
 // ----------------------------------------------------
 app.MapGet(
     "/",
-    () => Results.Redirect(
-        "/auth/login.html"));
+    () =>
+        Results.Redirect(
+            "/auth/login.html"));
 
 // ----------------------------------------------------
 // RUN

@@ -21,7 +21,8 @@ public class ContactRequestRepository : IContactRequestRepository
     private IQueryable<ContactRequest> WithDetails()
     {
         return _context.ContactRequests
-            .Include(x => x.JobApplication);
+            .Include(x => x.JobApplication).ThenInclude(a => a.Candidate).ThenInclude(p => p.User)
+            .Include(x => x.JobApplication).ThenInclude(a => a.Vacancy).ThenInclude(j => j.Company);
     }
 
     public Task<ContactRequest?> GetByIdWithDetailsAsync(Guid id)

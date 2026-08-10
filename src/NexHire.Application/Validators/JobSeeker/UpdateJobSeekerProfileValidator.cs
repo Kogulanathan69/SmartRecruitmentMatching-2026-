@@ -28,14 +28,5 @@ public class UpdateJobSeekerProfileValidator : AbstractValidator<UpdateJobSeeker
         RuleFor(x => x)
             .Must(x => !x.ExpectedSalaryMin.HasValue || !x.ExpectedSalaryMax.HasValue || x.ExpectedSalaryMin <= x.ExpectedSalaryMax)
             .WithMessage("ExpectedSalaryMin cannot be greater than ExpectedSalaryMax.");
-        RuleFor(x => x)
-            .Must(x => !x.ClearDateOfBirth || !x.DateOfBirth.HasValue)
-            .WithMessage("DateOfBirth cannot be supplied when ClearDateOfBirth is true.");
-        RuleFor(x => x)
-            .Must(x => !x.ClearExpectedSalaryMin || !x.ExpectedSalaryMin.HasValue)
-            .WithMessage("ExpectedSalaryMin cannot be supplied when ClearExpectedSalaryMin is true.");
-        RuleFor(x => x)
-            .Must(x => !x.ClearExpectedSalaryMax || !x.ExpectedSalaryMax.HasValue)
-            .WithMessage("ExpectedSalaryMax cannot be supplied when ClearExpectedSalaryMax is true.");
     }
 }

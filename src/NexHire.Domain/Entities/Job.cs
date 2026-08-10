@@ -69,4 +69,7 @@ public class Job
 
     public ICollection<JobPreferredSkill> PreferredSkills { get; set; }
         = new List<JobPreferredSkill>();
+
+    public ICollection<JobApplication> Applications { get; set; }
+        = new List<JobApplication>();
 }

@@ -10,7 +10,7 @@ public class MatchScoreDetailConfiguration
     public void Configure(
         EntityTypeBuilder<MatchScoreDetail> builder)
     {
-        builder.ToTable("MatchScoreDetails");
+        builder.ToTable("MatchScoreDetail");
 
         builder.HasKey(d => d.Id);
 

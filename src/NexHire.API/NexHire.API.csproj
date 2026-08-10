@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>NexHire.API</RootNamespace>
+    <UserSecretsId>54e929c6-982e-4c63-9f95-cd9d018bf7b3</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>

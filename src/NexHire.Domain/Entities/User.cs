@@ -35,4 +35,16 @@ public sealed class User
 
     public string FullName =>
         $"{FirstName} {LastName}".Trim();
+
+    // Email Verification
+
+    public bool IsEmailVerified { get; set; } = false;
+
+    public string? EmailVerificationOtpHash { get; set; }
+
+    public DateTime? EmailVerificationOtpExpiresAtUtc { get; set; }
+
+    public DateTime? EmailVerificationOtpLastSentAtUtc { get; set; }
+
+    public int EmailVerificationOtpFailedAttempts { get; set; } = 0;
 }

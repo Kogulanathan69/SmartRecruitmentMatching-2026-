@@ -11,6 +11,7 @@ public class CompanyResponseDto
     public string? OfficialEmail { get; set; }
     public string? PhoneNumber { get; set; }
     public string? RegisteredAddress { get; set; }
+    public string? Description { get; set; }
     public string? Website { get; set; }
     public string? Industry { get; set; }
     public string? CompanySize { get; set; }

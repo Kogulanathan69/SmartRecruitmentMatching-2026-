@@ -10,70 +10,48 @@ public class JobConfiguration : IEntityTypeConfiguration<Job>
     {
         builder.ToTable("Jobs");
 
-        builder.HasKey(j => j.Id);
+        builder.HasKey(x => x.Id);
 
-        builder.Property(j => j.Title)
+        builder.Property(x => x.Title)
             .IsRequired()
             .HasMaxLength(200);
 
-        builder.Property(j => j.Description)
+        builder.Property(x => x.Description)
             .IsRequired()
-            .HasMaxLength(8000);
+            .HasMaxLength(5000);
 
-        builder.Property(j => j.Responsibilities)
-            .HasMaxLength(4000);
+        builder.Property(x => x.Responsibilities)
+            .HasMaxLength(5000);
 
-        builder.Property(j => j.EducationRequirement)
+        builder.Property(x => x.EducationRequirement)
             .HasMaxLength(500);
 
-        builder.Property(j => j.MinimumEducationLevel)
-    .IsRequired();
-
-        builder.Property(j => j.RequiredCertifications)
-            .HasMaxLength(1000);
-
-        builder.Property(j => j.TargetProjectCount)
-            .IsRequired();
-
-        builder.Property(j => j.EmploymentType)
+        builder.Property(x => x.EmploymentType)
             .IsRequired()
-            .HasMaxLength(50);
+            .HasMaxLength(30);
 
-        builder.Property(j => j.LocationCity)
+        builder.Property(x => x.LocationCity)
             .HasMaxLength(100);
 
-        builder.Property(j => j.LocationCountry)
+        builder.Property(x => x.LocationCountry)
             .HasMaxLength(100);
 
-        builder.Property(j => j.Currency)
-            .IsRequired()
+        builder.Property(x => x.Currency)
             .HasMaxLength(10);
 
-        builder.Property(j => j.SalaryMin)
-            .HasPrecision(18, 2);
-
-        builder.Property(j => j.SalaryMax)
-            .HasPrecision(18, 2);
-
-        builder.Property(j => j.Status)
+        builder.Property(x => x.Status)
             .HasConversion<string>()
-            .HasMaxLength(30)
+            .HasMaxLength(40)
             .IsRequired();
 
-        builder.HasIndex(j => new { j.CompanyId, j.Status });
+        builder.Property(x => x.SalaryMin)
+            .HasPrecision(18, 2);
 
-        builder.HasIndex(j => j.Title);
+        builder.Property(x => x.SalaryMax)
+            .HasPrecision(18, 2);
 
-        builder.HasIndex(j => j.ClosingDate);
+        builder.HasIndex(x => x.Status);
 
-        builder.HasMany(j => j.RequiredSkills)
-            .WithOne(rs => rs.Job)
-            .HasForeignKey(rs => rs.JobId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(j => j.PreferredSkills)
-            .WithOne(ps => ps.Job)
-            .HasForeignKey(ps => ps.JobId)
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(x => x.CompanyId);
     }
 }

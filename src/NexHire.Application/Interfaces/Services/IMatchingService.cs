@@ -13,11 +13,6 @@ public interface IMatchingService
         Guid jobSeekerProfileId,
         CancellationToken cancellationToken = default);
 
-    Task<MatchingCalculationResult?> CalculateJobSeekerPreviewAsync(
-        Guid jobId,
-        Guid userId,
-        CancellationToken cancellationToken = default);
-
     Task<MatchingCalculationResult?> CalculateAndSaveMatchAsync(
         Guid jobId,
         Guid jobSeekerProfileId,
