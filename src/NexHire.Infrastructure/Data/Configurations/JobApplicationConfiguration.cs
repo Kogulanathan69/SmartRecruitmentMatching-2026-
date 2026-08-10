@@ -34,5 +34,9 @@ public class JobApplicationConfiguration
 
         builder.HasIndex(a => a.CandidateId);
         builder.HasIndex(a => a.VacancyId);
+
+        // Database safety net against simultaneous duplicate applications.
+        builder.HasIndex(a => new { a.CandidateId, a.VacancyId })
+            .IsUnique();
     }
 }
