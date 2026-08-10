@@ -10,13 +10,22 @@ public class ConsentContactService : IConsentContactService
 {
     private readonly IContactRequestRepository _contactRepository;
     private readonly IJobApplicationRepository _applicationRepository;
+    private readonly IJobRepository _jobRepository;
+    private readonly IUserRepository _userRepository;
+    private readonly INotificationService _notificationService;
 
     public ConsentContactService(
         IContactRequestRepository contactRepository,
-        IJobApplicationRepository applicationRepository)
+        IJobApplicationRepository applicationRepository,
+        IJobRepository jobRepository,
+        IUserRepository userRepository,
+        INotificationService notificationService)
     {
         _contactRepository = contactRepository;
         _applicationRepository = applicationRepository;
+        _jobRepository = jobRepository;
+        _userRepository = userRepository;
+        _notificationService = notificationService;
     }
 
     public async Task<ContactRequestResponseDto> CreateRequestAsync(
@@ -33,6 +42,17 @@ public class ConsentContactService : IConsentContactService
                 "Job application was not found.");
         }
 
+        var ownedJob =
+            await _jobRepository.GetOwnedByIdAsync(
+                application.VacancyId,
+                employerUserId);
+
+        if (ownedJob is null)
+        {
+            throw new UnauthorizedAccessException(
+                "You do not own the job associated with this application.");
+        }
+
         if (!Enum.TryParse<ApplicationStatus>(
                 application.Status,
                 true,
@@ -45,8 +65,7 @@ public class ConsentContactService : IConsentContactService
         if (applicationStatus != ApplicationStatus.Shortlisted)
         {
             throw new InvalidOperationException(
-                "Contact request can only be created " +
-                "for a shortlisted application.");
+                "Contact request can only be created for a shortlisted application.");
         }
 
         var existing =
@@ -56,8 +75,7 @@ public class ConsentContactService : IConsentContactService
         if (existing is not null)
         {
             throw new InvalidOperationException(
-                "A contact request already exists " +
-                "for this application.");
+                "A contact request already exists for this application.");
         }
 
         var now = DateTime.UtcNow;
@@ -78,7 +96,17 @@ public class ConsentContactService : IConsentContactService
 
         await _applicationRepository.SaveChangesAsync();
 
-        return MapRequest(request, application);
+        await _notificationService.CreateAsync(
+            application.CandidateId,
+            "ContactRequest",
+            "Employer requested contact permission",
+            $"{ownedJob.Company.Name} would like permission to contact you about {ownedJob.Title}.",
+            request.Id);
+
+        return await MapRequestAsync(
+            request,
+            application,
+            ownedJob);
     }
 
     public async Task<IReadOnlyList<ContactRequestResponseDto>>
@@ -88,10 +116,18 @@ public class ConsentContactService : IConsentContactService
             await _contactRepository
                 .GetByEmployerUserIdAsync(employerUserId);
 
-        return requests
-            .Select(x =>
-                MapRequest(x, x.JobApplication))
-            .ToList();
+        var result =
+            new List<ContactRequestResponseDto>();
+
+        foreach (var request in requests)
+        {
+            result.Add(
+                await MapRequestAsync(
+                    request,
+                    request.JobApplication));
+        }
+
+        return result;
     }
 
     public async Task<IReadOnlyList<ContactRequestResponseDto>>
@@ -102,18 +138,14 @@ public class ConsentContactService : IConsentContactService
                 .GetByCandidateUserIdAsync(candidateUserId);
 
         var now = DateTime.UtcNow;
-
         var changed = false;
 
         foreach (var request in requests)
         {
-            if (request.Status ==
-                    ContactRequestStatus.Pending &&
+            if (request.Status == ContactRequestStatus.Pending &&
                 request.ExpiresAtUtc <= now)
             {
-                request.Status =
-                    ContactRequestStatus.Expired;
-
+                request.Status = ContactRequestStatus.Expired;
                 request.DecisionAtUtc = now;
 
                 _contactRepository.Update(request);
@@ -127,10 +159,18 @@ public class ConsentContactService : IConsentContactService
             await _applicationRepository.SaveChangesAsync();
         }
 
-        return requests
-            .Select(x =>
-                MapRequest(x, x.JobApplication))
-            .ToList();
+        var result =
+            new List<ContactRequestResponseDto>();
+
+        foreach (var request in requests)
+        {
+            result.Add(
+                await MapRequestAsync(
+                    request,
+                    request.JobApplication));
+        }
+
+        return result;
     }
 
     public async Task<ContactRequestResponseDto> DecideAsync(
@@ -164,9 +204,7 @@ public class ConsentContactService : IConsentContactService
 
         if (request.ExpiresAtUtc <= now)
         {
-            request.Status =
-                ContactRequestStatus.Expired;
-
+            request.Status = ContactRequestStatus.Expired;
             request.DecisionAtUtc = now;
 
             _contactRepository.Update(request);
@@ -177,30 +215,34 @@ public class ConsentContactService : IConsentContactService
                 "This contact request has expired.");
         }
 
-        if (!Enum.TryParse<ContactRequestStatus>(
-                dto.Decision,
-                true,
-                out var decision))
-        {
-            throw new ArgumentException(
-                "Decision must be Accepted or Declined.");
-        }
+        var normalizedDecision =
+            dto.Decision.Trim().ToLowerInvariant() switch
+            {
+                "accept" or "accepted" =>
+                    ContactRequestStatus.Accepted,
 
-        if (decision != ContactRequestStatus.Accepted &&
-            decision != ContactRequestStatus.Declined)
-        {
-            throw new ArgumentException(
-                "Decision must be Accepted or Declined.");
-        }
+                "decline" or "declined" =>
+                    ContactRequestStatus.Declined,
 
-        request.Status = decision;
+                _ => throw new ArgumentException(
+                    "Decision must be Accept or Decline.")
+            };
+
+        request.Status = normalizedDecision;
         request.DecisionAtUtc = now;
 
         _contactRepository.Update(request);
 
         await _applicationRepository.SaveChangesAsync();
 
-        return MapRequest(
+        await _notificationService.CreateAsync(
+            request.EmployerUserId,
+            "ContactRequestDecision",
+            "Contact request decision",
+            $"Candidate {normalizedDecision.ToString().ToLowerInvariant()} your contact request.",
+            request.Id);
+
+        return await MapRequestAsync(
             request,
             request.JobApplication);
     }
@@ -226,43 +268,67 @@ public class ConsentContactService : IConsentContactService
                 "You do not own this contact request.");
         }
 
-        if (request.Status !=
-            ContactRequestStatus.Accepted)
+        if (request.Status != ContactRequestStatus.Accepted)
         {
             throw new InvalidOperationException(
-                "Candidate contact details are available " +
-                "only after the request is accepted.");
+                "Candidate contact details are available only after the request is accepted.");
         }
 
-        /*
-         * Current project structure has no User/Profile
-         * contact source connected to JobApplication.
-         *
-         * Returning fake candidate name/email/phone would
-         * be incorrect.
-         */
+        var candidate =
+            await _userRepository.GetByIdAsync(
+                request.CandidateUserId);
 
-        throw new InvalidOperationException(
-            "Candidate profile/contact data source has not " +
-            "yet been connected to ConsentContactService.");
+        if (candidate is null)
+        {
+            throw new KeyNotFoundException(
+                "Candidate user was not found.");
+        }
+
+        return new CandidateContactDetailsDto
+        {
+            ContactRequestId = request.Id,
+            ApplicationId = request.JobApplicationId,
+            CandidateName = candidate.FullName,
+            Email = candidate.Email,
+            PhoneNumber = candidate.PhoneNumber
+        };
     }
 
-    private static ContactRequestResponseDto MapRequest(
+    private async Task<ContactRequestResponseDto> MapRequestAsync(
         ContactRequest request,
-        JobApplication? application)
+        JobApplication? application,
+        Job? knownJob = null)
     {
+        Job? job = knownJob;
+
+        if (job is null && application is not null)
+        {
+            job =
+                await _jobRepository.GetByIdAsync(
+                    application.VacancyId);
+        }
+
+        var candidate =
+            await _userRepository.GetByIdAsync(
+                request.CandidateUserId);
+
         return new ContactRequestResponseDto
         {
             Id = request.Id,
             ApplicationId = request.JobApplicationId,
-
-            // Current JobApplication has VacancyId.
-            // DTO calls this JobId.
             JobId = application?.VacancyId ?? Guid.Empty,
 
-            JobTitle = string.Empty,
-            CompanyName = string.Empty,
-            CandidateName = string.Empty,
+            JobTitle =
+                job?.Title ??
+                string.Empty,
+
+            CompanyName =
+                job?.Company?.Name ??
+                string.Empty,
+
+            CandidateName =
+                candidate?.FullName ??
+                string.Empty,
 
             Message = request.Message,
             Status = request.Status.ToString(),

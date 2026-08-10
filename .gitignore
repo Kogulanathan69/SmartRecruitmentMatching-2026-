@@ -9,3 +9,6 @@ appsettings.Production.json
 
 # Local secrets
 .env
+
+# Runtime CV uploads
+src/NexHire.API/App_Data/

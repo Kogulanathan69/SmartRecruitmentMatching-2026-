@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Applicants · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/employer.css">
+</head>
+<body data-role="Employer" data-page="applicants">
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Employer navigation">
+    <div class="sidebar-head"><a class="brand" href="/app/employer/dashboard.html"><span class="brand-mark">NH</span><span class="brand-name">Nex<strong>Hire</strong></span></a></div>
+    <div class="workspace-label">Employer workspace</div>
+    <ul class="nav-list"><li><a class="nav-link" href="/app/employer/dashboard.html">Overview</a></li><li><a class="nav-link" href="/app/employer/company.html">Company</a></li><li><a class="nav-link" href="/app/employer/jobs.html">Vacancies</a></li><li><a class="nav-link active" aria-current="page" href="/app/employer/applicants.html">Applicants</a></li><li><a class="nav-link" href="/app/employer/contacts.html">Contact requests</a></li><li><a class="nav-link" href="/app/employer/notifications.html">Notifications</a></li></ul>
+    <div class="sidebar-foot"><div class="user-mini"><span class="avatar" data-user-initials>NH</span><span><strong data-user-name>NexHire user</strong><span data-user-role>Employer</span></span></div><button class="signout" type="button" data-logout>Sign out</button></div>
+  </aside>
+  <button class="scrim" data-scrim aria-label="Close navigation"></button>
+  <main>
+    <header class="topbar"><button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button><div class="topbar-title"><strong>Applicants</strong><span>Employer workspace</span></div><div class="topbar-actions"><span id="pageState" class="badge">Ready</span></div></header>
+    <div class="content employer-content">
+
+<header class="employer-hero"><div><p class="eyebrow">Applicant review</p><h1>Rank, review and move candidates forward.</h1><p>Applications, deterministic match ranking, explanations, status history and consent-based contact live together here.</p></div></header>
+<div id="pageMessage" class="status-message"></div>
+<div class="toolbar-card">
+  <label><span>Vacancy</span><select id="applicantJobSelect"></select></label>
+  <button class="btn btn-secondary btn-small" id="reloadApplicants" type="button">Refresh</button>
+</div>
+<section class="applicant-layout">
+  <article class="panel">
+    <header class="panel-head"><div><h2>Applicants</h2><p id="applicantCount">Choose a vacancy.</p></div></header>
+    <div id="applicantList" class="applicant-list"></div>
+  </article>
+  <article class="panel sticky-panel">
+    <div id="applicantDetail" class="detail-empty"><strong>Select an applicant</strong><span>Match explanation and hiring actions will appear here.</span></div>
+  </article>
+</section>
+
+    </div>
+  </main>
+</div>
+<script src="../../assets/api.js"></script>
+<script src="../../assets/session.js"></script>
+<script src="../../assets/employer.js"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Notifications · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/jobseeker.css">
+</head>
+<body data-role="JobSeeker" data-page="notifications">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Job seeker navigation">
+      <div class="sidebar-head">
+        <a class="brand" href="/app/jobseeker/dashboard.html"><span class="brand-mark">NH</span><span class="brand-name">Nex<strong>Hire</strong></span></a>
+      </div>
+      <div class="workspace-label">Job seeker workspace</div>
+      <ul class="nav-list">
+        <li><a class="nav-link" href="/app/jobseeker/dashboard.html">Overview</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/jobs.html">Find jobs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/applications.html">Applications</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/profile.html">Profile</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/resumes.html">CVs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/contacts.html">Contact requests</a></li>
+        <li><a class="nav-link active" aria-current="page" href="/app/jobseeker/notifications.html">Notifications</a></li>
+      </ul>
+      <div class="sidebar-foot">
+        <div class="user-mini"><span class="avatar" data-user-initials>NH</span><span><strong data-user-name>NexHire user</strong><span data-user-role>Job seeker</span></span></div>
+        <button class="signout" type="button" data-logout>Sign out</button>
+      </div>
+    </aside>
+    <button class="scrim" data-scrim aria-label="Close navigation"></button>
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button>
+        <div class="topbar-title"><strong>Notifications</strong><span>Application activity in one place</span></div>
+        <div class="topbar-actions"><span id="engagementState" class="badge">Loading</span></div>
+      </header>
+      <div class="content">
+        <header class="page-head"><div><p class="eyebrow">Activity centre</p><h1>Stay on top of every update</h1><p>See application status changes and contact-request activity. Mark individual items or your whole inbox as read.</p></div></header>
+        <div id="engagementMessage" class="status-message" role="status" aria-live="polite"></div>
+        <section class="notification-summary">
+          <div><span>Unread notifications</span><strong id="notificationUnread">—</strong></div>
+          <button id="markAllRead" class="engagement-primary" type="button">Mark all as read</button>
+        </section>
+        <section class="engagement-panel">
+          <div class="engagement-panel-head"><div><h2>Recent activity</h2><p>NexHire shows your latest 100 in-application notifications.</p></div><button id="refreshNotifications" class="engagement-secondary" type="button">Refresh</button></div>
+          <div id="notificationList" class="notification-list" aria-live="polite"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+  <script src="../../assets/api.js"></script>
+  <script src="../../assets/session.js"></script>
+  <script src="../../assets/jobseeker-engagement.js"></script>
+</body>
+</html>

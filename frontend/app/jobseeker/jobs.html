@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Search jobs and understand your match on NexHire">
+  <title>Find jobs · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/jobseeker.css">
+</head>
+<body data-role="JobSeeker" data-page="jobs">
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Job seeker navigation">
+      <div class="sidebar-head">
+        <a class="brand" href="/app/jobseeker/dashboard.html">
+          <span class="brand-mark">NH</span>
+          <span class="brand-name">Nex<strong>Hire</strong></span>
+        </a>
+      </div>
+
+      <div class="workspace-label">Job seeker workspace</div>
+      <ul class="nav-list">
+        <li><a class="nav-link" href="/app/jobseeker/dashboard.html">Overview</a></li>
+        <li><a class="nav-link active" aria-current="page" href="/app/jobseeker/jobs.html">Find jobs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/applications.html">Applications</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/profile.html">Profile</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/resumes.html">CVs</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/contacts.html">Contact requests</a></li>
+        <li><a class="nav-link" href="/app/jobseeker/notifications.html">Notifications</a></li>
+      </ul>
+
+      <div class="sidebar-foot">
+        <div class="user-mini">
+          <span class="avatar" data-user-initials>NH</span>
+          <span>
+            <strong data-user-name>NexHire user</strong>
+            <span data-user-role>Job seeker</span>
+          </span>
+        </div>
+        <button class="signout" type="button" data-logout>Sign out</button>
+      </div>
+    </aside>
+
+    <button class="scrim" data-scrim aria-label="Close navigation"></button>
+
+    <main>
+      <header class="topbar">
+        <button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button>
+        <div class="topbar-title">
+          <strong>Find jobs</strong>
+          <span>Search, understand, decide</span>
+        </div>
+        <div class="topbar-actions">
+          <span id="jobsState" class="badge">Ready</span>
+        </div>
+      </header>
+
+      <div class="content jobs-content">
+        <header class="jobs-hero">
+          <div>
+            <p class="eyebrow">Find your next move</p>
+            <h1>Search roles with the reason behind the match.</h1>
+            <p>NexHire shows the vacancy, your fit, and the evidence side by side so you can decide before you apply.</p>
+          </div>
+        </header>
+
+        <form id="jobSearchForm" class="search-bar" role="search">
+          <label class="search-field search-field-main">
+            <span>Role, company or keyword</span>
+            <input id="query" name="query" type="search" autocomplete="off" placeholder="e.g. Backend developer">
+          </label>
+
+          <label class="search-field">
+            <span>Location</span>
+            <input id="location" name="location" autocomplete="address-level2" placeholder="e.g. Colombo">
+          </label>
+
+          <button class="btn btn-primary search-submit" type="submit">Search jobs</button>
+        </form>
+
+        <div class="filter-row" aria-label="More job filters">
+          <label class="compact-field">
+            <span>Skill</span>
+            <input id="skill" name="skill" placeholder="C#, SQL, React…">
+          </label>
+
+          <label class="compact-field">
+            <span>Experience</span>
+            <input id="experienceYears" name="experienceYears" type="number" min="0" max="60" step="1" placeholder="Years">
+          </label>
+
+          <label class="check-filter">
+            <input id="isRemote" name="isRemote" type="checkbox">
+            <span>Remote only</span>
+          </label>
+
+          <button id="clearFilters" class="filter-clear" type="button">Clear filters</button>
+        </div>
+
+        <div id="jobsMessage" class="status-message" role="status" aria-live="polite"></div>
+
+        <section class="jobs-workbench" aria-label="Job search results">
+          <div class="job-results-column">
+            <div class="results-head">
+              <div>
+                <strong id="resultCount">Finding roles…</strong>
+                <span>Published vacancies that are still open</span>
+              </div>
+            </div>
+            <div id="jobList" class="job-list" aria-live="polite"></div>
+          </div>
+
+          <article id="jobDetail" class="job-detail panel" aria-live="polite">
+            <div class="job-detail-placeholder">
+              <span class="placeholder-mark">NH</span>
+              <strong>Select a role to review the full opportunity.</strong>
+              <p>The job description, requirements, match score and apply action will appear here.</p>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="../../assets/api.js"></script>
+  <script src="../../assets/session.js"></script>
+  <script src="../../assets/jobseeker.js"></script>
+</body>
+</html>

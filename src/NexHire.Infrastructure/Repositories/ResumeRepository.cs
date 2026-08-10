@@ -16,7 +16,6 @@ public class ResumeRepository : IResumeRepository
 
     public Task<ResumeTemplate?> GetActiveTemplateByIdAsync(Guid id) =>
         _context.Set<ResumeTemplate>()
-            .AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id && t.IsActive);
 
     public async Task<IReadOnlyList<ResumeTemplate>> GetActiveTemplatesAsync() =>
@@ -25,6 +24,9 @@ public class ResumeRepository : IResumeRepository
             .Where(t => t.IsActive)
             .OrderBy(t => t.Name)
             .ToListAsync();
+
+    public async Task AddAsync(Resume resume) =>
+        await _context.Set<Resume>().AddAsync(resume);
 
     public void Remove(Resume resume) =>
         _context.Set<Resume>().Remove(resume);

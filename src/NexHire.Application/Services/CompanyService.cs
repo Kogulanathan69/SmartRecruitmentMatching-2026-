@@ -62,6 +62,17 @@ public class CompanyService : ICompanyService
         return companies.Select(MapCompany).ToList();
     }
 
+    public async Task<IReadOnlyList<CompanyResponseDto>> GetPendingVerificationAsync()
+    {
+        var companies =
+            await _unitOfWork.Companies.GetByStatusAsync(
+                CompanyStatus.Pending);
+
+        return companies
+            .Select(MapCompany)
+            .ToList();
+    }
+
     public async Task<CompanyResponseDto> UpdateCompanyAsync(Guid companyId, Guid userId, UpdateCompanyDto dto)
     {
         var company = await GetOwnedCompanyAsync(companyId, userId, includeDetails: true);
@@ -117,7 +128,6 @@ public class CompanyService : ICompanyService
         {
             existing = new CompanyDocument
             {
-                Id = Guid.NewGuid(),
                 CompanyId = companyId,
                 DocumentType = dto.DocumentType.Trim(),
                 FileName = dto.FileName.Trim(),
@@ -145,11 +155,16 @@ public class CompanyService : ICompanyService
         if (string.IsNullOrWhiteSpace(dto.DeclarationName) || string.IsNullOrWhiteSpace(dto.DeclarationDesignation))
             throw new ValidationException("Declaration name and designation are required.");
 
-        var missing = GetMissingRequirements(company);
-        if (missing.Count > 0)
-            throw new BusinessRuleException($"Verification cannot be submitted. Missing: {string.Join(", ", missing)}.");
+        var missing =
+            GetMissingSubmissionRequirements(company);
 
-        company.Verification ??= new CompanyVerification { Id = Guid.NewGuid(), CompanyId = company.Id };
+        if (missing.Count > 0)
+        {
+            throw new BusinessRuleException(
+                $"Verification cannot be submitted. Missing: {string.Join(", ", missing)}.");
+        }
+
+        company.Verification ??= new CompanyVerification { CompanyId = company.Id };
         company.Verification.Status = VerificationStatus.Pending;
         company.Verification.DeclarationName = dto.DeclarationName.Trim();
         company.Verification.DeclarationDesignation = dto.DeclarationDesignation.Trim();
@@ -196,18 +211,42 @@ public class CompanyService : ICompanyService
     {
         var company = await _unitOfWork.Companies.GetByIdWithDetailsAsync(companyId)
             ?? throw new NotFoundException("Company not found.");
-        if (!Enum.TryParse<VerificationStatus>(dto.Status, true, out var status))
-            throw new ValidationException("Status must be Verified, Rejected, MoreInformationRequired, or Suspended.");
+        if (!Enum.TryParse<VerificationStatus>(
+                dto.Status,
+                true,
+                out var status) ||
+            status is not (
+                VerificationStatus.Verified or
+                VerificationStatus.Rejected or
+                VerificationStatus.MoreInformationRequired or
+                VerificationStatus.Suspended))
+        {
+            throw new ValidationException(
+                "Status must be Verified, Rejected, MoreInformationRequired, or Suspended.");
+        }
         if (company.Verification?.SubmittedAt is null && status == VerificationStatus.Verified)
             throw new BusinessRuleException("The company must submit a verification request first.");
 
         var registrationDocument = company.Documents.FirstOrDefault(d => d.DocumentType.Equals("BusinessRegistration", StringComparison.OrdinalIgnoreCase));
         if (status == VerificationStatus.Verified && registrationDocument is null)
             throw new BusinessRuleException("A business registration document is required.");
-        if (status == VerificationStatus.Verified && !dto.RegistrationDocumentVerified)
-            throw new BusinessRuleException("The registration document must be verified before approval.");
+        if (status == VerificationStatus.Verified &&
+            !dto.RegistrationDocumentVerified)
+        {
+            throw new BusinessRuleException(
+                "The registration document must be verified before approval.");
+        }
 
-        company.Verification ??= new CompanyVerification { Id = Guid.NewGuid(), CompanyId = companyId };
+        if (status == VerificationStatus.Verified &&
+            (!dto.OfficialEmailVerified ||
+             !dto.PhoneVerified ||
+             !dto.RegisteredAddressVerified))
+        {
+            throw new BusinessRuleException(
+                "Official email, phone number, and registered address must be verified before approval.");
+        }
+
+        company.Verification ??= new CompanyVerification { CompanyId = companyId };
         company.Verification.Status = status;
         company.Verification.RegistrationDocumentVerified = dto.RegistrationDocumentVerified;
         company.Verification.VerifiedByUserId = adminUserId;
@@ -249,6 +288,38 @@ public class CompanyService : ICompanyService
         if (company.CreatedByUserId != userId)
             throw new UnauthorizedException("You do not have permission to manage this company.");
         return company;
+    }
+
+    private static List<string> GetMissingSubmissionRequirements(
+        Company company)
+    {
+        var missing = new List<string>();
+
+        if (string.IsNullOrWhiteSpace(company.LegalName))
+            missing.Add("legal company name");
+
+        if (string.IsNullOrWhiteSpace(company.RegistrationNumber))
+            missing.Add("registration number");
+
+        if (string.IsNullOrWhiteSpace(company.OfficialEmail))
+            missing.Add("official email");
+
+        if (string.IsNullOrWhiteSpace(company.PhoneNumber))
+            missing.Add("phone number");
+
+        if (string.IsNullOrWhiteSpace(company.RegisteredAddress))
+            missing.Add("registered address");
+
+        if (!company.Documents.Any(
+                document =>
+                    document.DocumentType.Equals(
+                        "BusinessRegistration",
+                        StringComparison.OrdinalIgnoreCase)))
+        {
+            missing.Add("business registration document");
+        }
+
+        return missing;
     }
 
     private static List<string> GetMissingRequirements(Company company)

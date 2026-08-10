@@ -3,6 +3,7 @@ using NexHire.Application.Common.Exceptions;
 using NexHire.Application.DTOs.Resume;
 using NexHire.Application.Interfaces.Repositories;
 using NexHire.Application.Interfaces.Services;
+using NexHire.Application.Validators.Resume;
 using NexHire.Domain.Entities;
 
 namespace NexHire.Application.Services;
@@ -11,11 +12,16 @@ public class ResumeService : IResumeService
 {
     private readonly IJobSeekerRepository _jobSeekerRepository;
     private readonly IResumeRepository _resumeRepository;
+    private readonly IResumeFileStorage _fileStorage;
 
-    public ResumeService(IJobSeekerRepository jobSeekerRepository, IResumeRepository resumeRepository)
+    public ResumeService(
+        IJobSeekerRepository jobSeekerRepository,
+        IResumeRepository resumeRepository,
+        IResumeFileStorage fileStorage)
     {
         _jobSeekerRepository = jobSeekerRepository;
         _resumeRepository = resumeRepository;
+        _fileStorage = fileStorage;
     }
 
     public async Task<IReadOnlyList<ResumeResponseDto>> GetMyResumesAsync(Guid userId)
@@ -31,10 +37,102 @@ public class ResumeService : IResumeService
     public async Task<ResumeResponseDto> GetByIdAsync(Guid userId, Guid resumeId) =>
         Map(await GetOwnedResumeAsync(userId, resumeId));
 
-    public async Task<ResumeResponseDto> CreateAsync(Guid userId, CreateResumeDto dto)
+    public async Task<ResumeResponseDto> UploadAsync(
+        Guid userId,
+        string originalFileName,
+        byte[] content,
+        string? resumeName,
+        bool isPrimary,
+        CancellationToken cancellationToken = default)
     {
         var profile = await GetDetailedProfileAsync(userId);
-        ValidateInput(dto.ResumeName, dto.CareerObjective, dto.Languages);
+        var extension = ResumeFileValidator.ValidateAndGetExtension(originalFileName, content);
+
+        var defaultName = Path.GetFileNameWithoutExtension(Path.GetFileName(originalFileName));
+        var cleanName = string.IsNullOrWhiteSpace(resumeName) ? defaultName.Trim() : resumeName.Trim();
+
+        if (string.IsNullOrWhiteSpace(cleanName))
+            throw new ValidationException("Resume name is required.");
+
+        if (cleanName.Length > 120)
+            throw new ValidationException("Resume name cannot exceed 120 characters.");
+
+        if (profile.Resumes.Any(r => r.ResumeName.Equals(cleanName, StringComparison.OrdinalIgnoreCase)))
+            throw new BusinessRuleException("A resume with this name already exists.");
+
+        if (isPrimary)
+        {
+            foreach (var existing in profile.Resumes)
+                existing.IsPrimary = false;
+        }
+
+        var resume = new Resume
+        {
+            Id = Guid.NewGuid(),
+            JobSeekerProfileId = profile.Id,
+            ResumeName = cleanName,
+            IsPrimary = isPrimary || profile.Resumes.Count == 0,
+            IsGenerated = false,
+            CreatedAt = DateTime.UtcNow,
+            UploadedAt = DateTime.UtcNow
+        };
+
+        string? storageKey = null;
+
+        try
+        {
+            storageKey = await _fileStorage.SaveAsync(userId, extension, content, cancellationToken);
+            resume.FileName = storageKey;
+            resume.FileUrl = $"/api/resumes/{resume.Id}/file";
+
+            await _resumeRepository.AddAsync(resume);
+            ApplyCompleteness(resume, profile);
+            await _resumeRepository.SaveChangesAsync();
+            return Map(resume);
+        }
+        catch
+        {
+            if (!string.IsNullOrWhiteSpace(storageKey))
+                await _fileStorage.DeleteAsync(storageKey, cancellationToken);
+
+            throw;
+        }
+    }
+
+    public async Task<ResumeFileDownloadDto> DownloadUploadedAsync(
+        Guid userId,
+        Guid resumeId,
+        CancellationToken cancellationToken = default)
+    {
+        var resume = await GetOwnedResumeAsync(userId, resumeId);
+
+        if (!IsUploadedFile(resume))
+            throw new BusinessRuleException("This resume does not contain an uploaded CV file.");
+
+        byte[] content;
+        try
+        {
+            content = await _fileStorage.ReadAsync(resume.FileName, cancellationToken);
+        }
+        catch (FileNotFoundException)
+        {
+            throw new NotFoundException("Uploaded CV file was not found.");
+        }
+
+        var extension = Path.GetExtension(resume.FileName);
+
+        return new ResumeFileDownloadDto
+        {
+            Content = content,
+            ContentType = ResumeFileValidator.GetContentType(extension),
+            DownloadName = $"{SafeFileName(resume.ResumeName)}{extension}"
+        };
+    }
+
+    public async Task<ResumeResponseDto> CreateAsync(Guid userId, CreateResumeDto dto)
+    {
+        ValidateDto(new CreateResumeValidator(), dto);
+        var profile = await GetDetailedProfileAsync(userId);
 
         var cleanName = dto.ResumeName.Trim();
         if (profile.Resumes.Any(r => r.ResumeName.Equals(cleanName, StringComparison.OrdinalIgnoreCase)))
@@ -65,7 +163,7 @@ public class ResumeService : IResumeService
             UploadedAt = DateTime.UtcNow
         };
 
-        profile.Resumes.Add(resume);
+        await _resumeRepository.AddAsync(resume);
         ApplyCompleteness(resume, profile);
         await _resumeRepository.SaveChangesAsync();
         return Map(resume);
@@ -73,11 +171,11 @@ public class ResumeService : IResumeService
 
     public async Task<ResumeResponseDto> UpdateAsync(Guid userId, Guid resumeId, UpdateResumeDto dto)
     {
+        ValidateDto(new UpdateResumeValidator(), dto);
         var profile = await GetDetailedProfileAsync(userId);
         var resume = profile.Resumes.FirstOrDefault(r => r.Id == resumeId)
             ?? throw new NotFoundException("Resume not found.");
 
-        ValidateInput(dto.ResumeName, dto.CareerObjective, dto.Languages);
         var cleanName = dto.ResumeName.Trim();
         if (profile.Resumes.Any(r => r.Id != resumeId && r.ResumeName.Equals(cleanName, StringComparison.OrdinalIgnoreCase)))
             throw new BusinessRuleException("A resume with this name already exists.");
@@ -99,10 +197,15 @@ public class ResumeService : IResumeService
         resume.GitHubUrl = Clean(dto.GitHubUrl);
         resume.PortfolioUrl = Clean(dto.PortfolioUrl);
         resume.IsPrimary = dto.IsPrimary || resume.IsPrimary;
-        resume.IsGenerated = false;
-        resume.GeneratedHtml = null;
-        resume.FileName = string.Empty;
-        resume.FileUrl = string.Empty;
+
+        if (!IsUploadedFile(resume))
+        {
+            resume.IsGenerated = false;
+            resume.GeneratedHtml = null;
+            resume.FileName = string.Empty;
+            resume.FileUrl = string.Empty;
+        }
+
         resume.UpdatedAt = DateTime.UtcNow;
 
         ApplyCompleteness(resume, profile);
@@ -115,6 +218,8 @@ public class ResumeService : IResumeService
         var profile = await GetDetailedProfileAsync(userId);
         var resume = profile.Resumes.FirstOrDefault(r => r.Id == resumeId)
             ?? throw new NotFoundException("Resume not found.");
+
+        var uploadedStorageKey = IsUploadedFile(resume) ? resume.FileName : null;
 
         _resumeRepository.Remove(resume);
 
@@ -129,6 +234,18 @@ public class ResumeService : IResumeService
         }
 
         await _resumeRepository.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(uploadedStorageKey))
+        {
+            try
+            {
+                await _fileStorage.DeleteAsync(uploadedStorageKey);
+            }
+            catch (IOException)
+            {
+                // Database deletion remains successful; stale local file can be cleaned later.
+            }
+        }
     }
 
     public async Task<ResumeCompletenessDto> GetCompletenessAsync(Guid userId, Guid? resumeId = null)
@@ -149,6 +266,9 @@ public class ResumeService : IResumeService
         var profile = await GetDetailedProfileAsync(userId);
         var resume = profile.Resumes.FirstOrDefault(r => r.Id == resumeId)
             ?? throw new NotFoundException("Resume not found.");
+
+        if (IsUploadedFile(resume))
+            throw new BusinessRuleException("Uploaded CVs cannot be regenerated by the CV Builder. Create a builder CV instead.");
 
         var completeness = CalculateCompleteness(resume, profile);
 
@@ -212,18 +332,6 @@ public class ResumeService : IResumeService
 
         return await _resumeRepository.GetActiveTemplateByIdAsync(templateId.Value)
             ?? throw new BusinessRuleException("Selected resume template is unavailable.");
-    }
-
-    private static void ValidateInput(string name, string? objective, IEnumerable<string> languages)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            throw new BusinessRuleException("Resume name is required.");
-        if (name.Trim().Length > 120)
-            throw new BusinessRuleException("Resume name cannot exceed 120 characters.");
-        if (!string.IsNullOrWhiteSpace(objective) && objective.Trim().Length > 1200)
-            throw new BusinessRuleException("Career objective cannot exceed 1200 characters.");
-        if (languages.Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).Count() > 10)
-            throw new BusinessRuleException("A maximum of 10 languages is allowed.");
     }
 
     private static ResumeCompletenessDto CalculateCompleteness(Resume resume, JobSeekerProfile profile)
@@ -296,6 +404,8 @@ public class ResumeService : IResumeService
         static string Items<T>(IEnumerable<T> values, Func<T, string> item) => string.Join(string.Empty, values.Select(item));
 
         var user = profile.User;
+        var templateCode = NormalizeTemplateCode(resume.ResumeTemplate?.Code);
+        var templateCss = TemplateCss(templateCode);
         var skills = Items(profile.CandidateSkills, x => $"<span class='tag'>{E(x.Skill?.Name)}</span>");
         var education = Items(profile.Educations.OrderByDescending(x => x.StartDate), x =>
             $"<div class='item'><b>{E(x.Degree)}</b> - {E(x.Institution)}<br><small>{x.StartDate:yyyy} - {(x.EndDate.HasValue ? x.EndDate.Value.ToString("yyyy") : "Present")}</small></div>");
@@ -305,24 +415,44 @@ public class ResumeService : IResumeService
             $"<div class='item'><b>{E(x.Title)}</b><p>{E(x.Description)}</p><small>{E(x.TechStack)}</small></div>");
         var certifications = Items(profile.Certifications, x => $"<li>{E(x.Name)} - {E(x.IssuingOrganization)}</li>");
 
+        var location = string.Join(", ", new[] { profile.City, profile.Country }
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => E(value)));
+        var contact = string.Join(" &middot; ", new[] { E(user?.Email), E(user?.PhoneNumber), location }
+            .Where(value => !string.IsNullOrWhiteSpace(value)));
+        var links = Items(new[] { resume.LinkedInUrl, resume.GitHubUrl, resume.PortfolioUrl }
+                .Where(value => !string.IsNullOrWhiteSpace(value)),
+            value => $"<div>{E(value)}</div>");
+
         return $@"<!doctype html>
-<html>
+<html lang='en'>
 <head>
 <meta charset='utf-8'>
+<meta name='viewport' content='width=device-width,initial-scale=1'>
 <title>{E(resume.ResumeName)}</title>
 <style>
-body{{font-family:Arial,sans-serif;color:#172033;margin:40px;line-height:1.45}}
-h1{{color:#0b1f3a;margin-bottom:2px}}
-h2{{font-size:17px;color:#2c5ff6;border-bottom:1px solid #dfe5ee;padding-bottom:6px;margin-top:24px}}
-.muted{{color:#667085}}
-.tag{{display:inline-block;background:#eef3fb;padding:5px 9px;border-radius:14px;margin:3px}}
-.item{{margin:10px 0}}
-@media print{{body{{margin:18mm}}}}
+*{{box-sizing:border-box}}
+body{{max-width:900px;margin:0 auto;padding:42px;font-family:Arial,sans-serif;color:#172033;line-height:1.5;background:#fff}}
+.resume-header{{padding-bottom:20px;border-bottom:3px solid var(--accent)}}
+h1{{margin:0;color:var(--heading);font-size:34px;line-height:1.1}}
+.headline{{margin-top:7px;color:var(--accent);font-size:16px;font-weight:700}}
+h2{{margin:26px 0 11px;padding-bottom:6px;border-bottom:1px solid var(--line);color:var(--heading);font-size:17px}}
+.muted{{margin-top:7px;color:#667085;font-size:13px}}
+.tag{{display:inline-block;margin:3px;padding:5px 9px;border-radius:14px;background:var(--soft);color:var(--heading);font-size:13px}}
+.item{{margin:12px 0}}
+.item p{{margin:5px 0}}
+.links div{{word-break:break-all}}
+{templateCss}
+@media(max-width:640px){{body{{padding:24px}}h1{{font-size:28px}}}}
+@media print{{body{{max-width:none;margin:0;padding:14mm}}}}
 </style>
 </head>
-<body>
+<body data-template='{E(templateCode)}'>
+<header class='resume-header'>
 <h1>{E(user?.FirstName)} {E(user?.LastName)}</h1>
-<div class='muted'>{E(profile.Headline)} &middot; {E(user?.Email)} &middot; {E(user?.PhoneNumber)} &middot; {E(profile.City)}, {E(profile.Country)}</div>
+<div class='headline'>{E(profile.Headline)}</div>
+<div class='muted'>{contact}</div>
+</header>
 <h2>Career Objective</h2><p>{E(resume.CareerObjective)}</p>
 <h2>Skills</h2><div>{skills}</div>
 <h2>Education</h2>{education}
@@ -330,10 +460,29 @@ h2{{font-size:17px;color:#2c5ff6;border-bottom:1px solid #dfe5ee;padding-bottom:
 <h2>Projects</h2>{projects}
 <h2>Certifications</h2><ul>{certifications}</ul>
 <h2>Languages</h2><p>{E(resume.Languages)}</p>
-<h2>Links</h2><p>{E(resume.LinkedInUrl)} {E(resume.GitHubUrl)} {E(resume.PortfolioUrl)}</p>
+<h2>Links</h2><div class='links'>{links}</div>
 </body>
 </html>";
     }
+
+    private static string NormalizeTemplateCode(string? code) =>
+        code?.Trim().ToLowerInvariant() switch
+        {
+            "modern" => "modern",
+            "minimal" => "minimal",
+            "executive" => "executive",
+            "technical" => "technical",
+            _ => "classic"
+        };
+
+    private static string TemplateCss(string code) => code switch
+    {
+        "modern" => ":root{--accent:#146c4b;--heading:#10291f;--line:#b9d4c8;--soft:#e7f2ed}.resume-header{padding-left:18px;border-left:7px solid var(--accent);border-bottom-width:1px}",
+        "minimal" => ":root{--accent:#222;--heading:#111;--line:#d8d8d8;--soft:#f2f2f2}body{font-family:Helvetica,Arial,sans-serif}.resume-header{border-bottom-width:1px}h1{font-weight:500;letter-spacing:-.03em}h2{text-transform:uppercase;letter-spacing:.08em;font-size:13px}",
+        "executive" => ":root{--accent:#8a6a20;--heading:#1f2937;--line:#d9cfb7;--soft:#f4efe2}body{font-family:Georgia,'Times New Roman',serif}.resume-header{text-align:center}h1{font-size:38px}.headline{color:#6f551a}h2{letter-spacing:.03em}",
+        "technical" => ":root{--accent:#275d8c;--heading:#16344f;--line:#b8cad9;--soft:#e8f0f7}.resume-header{border-bottom-style:dashed}h1,h2{font-family:'Segoe UI',Arial,sans-serif}.tag{border:1px solid var(--line);border-radius:4px;font-family:Consolas,monospace}",
+        _ => ":root{--accent:#284b7a;--heading:#172b4d;--line:#cbd5e1;--soft:#eef3f8}body{font-family:Georgia,'Times New Roman',serif}.muted,.tag,.item small{font-family:Arial,sans-serif}"
+    };
 
     private static ResumeResponseDto Map(Resume resume) => new()
     {
@@ -377,6 +526,25 @@ h2{{font-size:17px;color:#2c5ff6;border-bottom:1px solid #dfe5ee;padding-bottom:
             : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static void ValidateDto<T>(FluentValidation.IValidator<T> validator, T dto)
+    {
+        var result = validator.Validate(dto);
+        if (result.IsValid)
+            return;
+
+        var message = string.Join(
+            " ",
+            result.Errors
+                .Select(error => error.ErrorMessage)
+                .Distinct(StringComparer.Ordinal));
+        throw new ValidationException(message);
+    }
+
+    private static bool IsUploadedFile(Resume resume) =>
+        !string.IsNullOrWhiteSpace(resume.FileName) &&
+        !string.IsNullOrWhiteSpace(resume.FileUrl) &&
+        resume.FileUrl.EndsWith("/file", StringComparison.OrdinalIgnoreCase);
 
     private static string SafeFileName(string value) =>
         string.Concat(value.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '_' : c));

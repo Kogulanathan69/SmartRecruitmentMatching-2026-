@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Company profile · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/employer.css">
+</head>
+<body data-role="Employer" data-page="company">
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Employer navigation">
+    <div class="sidebar-head"><a class="brand" href="/app/employer/dashboard.html"><span class="brand-mark">NH</span><span class="brand-name">Nex<strong>Hire</strong></span></a></div>
+    <div class="workspace-label">Employer workspace</div>
+    <ul class="nav-list"><li><a class="nav-link" href="/app/employer/dashboard.html">Overview</a></li><li><a class="nav-link active" aria-current="page" href="/app/employer/company.html">Company</a></li><li><a class="nav-link" href="/app/employer/jobs.html">Vacancies</a></li><li><a class="nav-link" href="/app/employer/applicants.html">Applicants</a></li><li><a class="nav-link" href="/app/employer/contacts.html">Contact requests</a></li><li><a class="nav-link" href="/app/employer/notifications.html">Notifications</a></li></ul>
+    <div class="sidebar-foot"><div class="user-mini"><span class="avatar" data-user-initials>NH</span><span><strong data-user-name>NexHire user</strong><span data-user-role>Employer</span></span></div><button class="signout" type="button" data-logout>Sign out</button></div>
+  </aside>
+  <button class="scrim" data-scrim aria-label="Close navigation"></button>
+  <main>
+    <header class="topbar"><button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button><div class="topbar-title"><strong>Company profile</strong><span>Employer workspace</span></div><div class="topbar-actions"><span id="pageState" class="badge">Ready</span></div></header>
+    <div class="content employer-content">
+
+<header class="employer-hero"><div><p class="eyebrow">Company identity</p><h1>Build a trusted employer profile.</h1><p>Create or maintain the company profile used across vacancies and candidate contact requests.</p></div><div id="companyTrust" class="hero-stat"><span>Trust score</span><strong>—</strong><small>Profile verification signal</small></div></header>
+<div id="pageMessage" class="status-message"></div>
+<section class="employer-grid">
+  <article class="panel form-panel">
+    <header class="panel-head"><div><h2>Company profile</h2><p>Required legal and contact details stay connected to your employer account.</p></div></header>
+    <form id="companyForm" class="employer-form">
+      <div class="field-grid two">
+        <label><span>Company name *</span><input id="companyName" required maxlength="120"></label>
+        <label><span>Legal name</span><input id="legalName" maxlength="160"></label>
+        <label><span>Registration number *</span><input id="registrationNumber" required maxlength="80"></label>
+        <label><span>Official email *</span><input id="officialEmail" type="email" required></label>
+        <label><span>Phone number *</span><input id="companyPhone" required></label>
+        <label><span>Website</span><input id="website" placeholder="https://example.com"></label>
+        <label><span>Industry</span><input id="industry" placeholder="Technology"></label>
+        <label><span>Company size</span><input id="companySize" placeholder="11-50"></label>
+        <label><span>City</span><input id="companyCity"></label>
+        <label><span>Country</span><input id="companyCountry"></label>
+      </div>
+      <label><span>Registered address *</span><textarea id="registeredAddress" rows="3" required></textarea></label>
+      <label><span>Description</span><textarea id="companyDescription" rows="5"></textarea></label>
+      <div class="form-actions"><button class="btn primary" id="companySubmit" type="submit">Save company</button><button class="btn btn-secondary" id="companyReload" type="button">Reload</button></div>
+    </form>
+  </article>
+  <aside class="panel">
+    <header class="panel-head"><div><h2>Verification snapshot</h2><p>Read-only signals from the company verification module.</p></div></header>
+    <div id="verificationSnapshot" class="fact-stack"></div>
+  </aside>
+</section>
+
+    </div>
+  </main>
+</div>
+<script src="../../assets/api.js"></script>
+<script src="../../assets/session.js"></script>
+<script src="../../assets/employer.js"></script>
+</body>
+</html>
