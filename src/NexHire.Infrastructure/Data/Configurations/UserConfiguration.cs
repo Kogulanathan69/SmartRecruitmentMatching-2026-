@@ -48,6 +48,22 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.PasswordResetTokenHash)
             .HasMaxLength(64);
 
+        // Database default true deliberately preserves all pre-OTP accounts
+        // and Admin-created accounts. Public registration explicitly writes false.
+        builder.Property(user => user.IsEmailVerified)
+            .HasDefaultValue(true)
+            .IsRequired();
+
+        builder.Property(user => user.EmailVerificationOtpHash)
+            .HasMaxLength(64);
+
+        builder.Property(user => user.EmailVerificationOtpExpiresAtUtc);
+        builder.Property(user => user.EmailVerificationOtpLastSentAtUtc);
+
+        builder.Property(user => user.EmailVerificationOtpFailedAttempts)
+            .HasDefaultValue(0)
+            .IsRequired();
+
         builder.HasIndex(user => user.NormalizedEmail)
             .IsUnique();
     }
