@@ -14,6 +14,7 @@ public class MatchingService : IMatchingService
     private readonly IMatchingEngine _matchingEngine;
     private readonly IMatchingRepository? _matchingRepository;
     private readonly ICurrentUserService? _currentUserService;
+    private readonly IJobSeekerRepository? _jobSeekerRepository;
 
     /// <summary>
     /// Constructor kept for existing unit tests and pure
@@ -51,6 +52,26 @@ public class MatchingService : IMatchingService
             currentUserService
             ?? throw new ArgumentNullException(
                 nameof(currentUserService));
+    }
+
+    /// <summary>
+    /// Production constructor used for secure JobSeeker-owned
+    /// match previews in addition to Employer/Admin matching.
+    /// </summary>
+    public MatchingService(
+        IMatchingEngine matchingEngine,
+        IMatchingRepository matchingRepository,
+        ICurrentUserService currentUserService,
+        IJobSeekerRepository jobSeekerRepository)
+        : this(
+            matchingEngine,
+            matchingRepository,
+            currentUserService)
+    {
+        _jobSeekerRepository =
+            jobSeekerRepository
+            ?? throw new ArgumentNullException(
+                nameof(jobSeekerRepository));
     }
 
     /// <summary>
@@ -94,6 +115,70 @@ public class MatchingService : IMatchingService
                     cancellationToken);
 
         if (input is null)
+        {
+            return null;
+        }
+
+        return CalculateMatch(input);
+    }
+
+    /// <summary>
+    /// Calculates a read-only match preview for the professional
+    /// profile owned by the current JobSeeker account.
+    /// </summary>
+    public async Task<MatchingCalculationResult?>
+        CalculateJobSeekerPreviewAsync(
+            Guid jobId,
+            Guid userId,
+            CancellationToken cancellationToken = default)
+    {
+        if (jobId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "JobId is required.",
+                nameof(jobId));
+        }
+
+        if (userId == Guid.Empty)
+        {
+            throw new ArgumentException(
+                "UserId is required.",
+                nameof(userId));
+        }
+
+        if (_matchingRepository is null ||
+            _jobSeekerRepository is null ||
+            _currentUserService is null)
+        {
+            throw new InvalidOperationException(
+                "JobSeeker match preview services are not available.");
+        }
+
+        if (!_currentUserService.IsInRole("JobSeeker") ||
+            _currentUserService.UserId != userId)
+        {
+            throw new UnauthorizedAccessException(
+                "You may only preview matching for your own account.");
+        }
+
+        var profile =
+            await _jobSeekerRepository
+                .GetByUserIdAsync(userId);
+
+        if (profile is null)
+        {
+            return null;
+        }
+
+        var input =
+            await _matchingRepository
+                .GetMatchingCalculationInputAsync(
+                    jobId,
+                    profile.Id,
+                    cancellationToken);
+
+        if (input is null ||
+            !input.Eligibility.IsJobAvailable)
         {
             return null;
         }
