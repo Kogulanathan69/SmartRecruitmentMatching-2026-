@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Contact requests · NexHire</title>
+  <link rel="stylesheet" href="../../assets/base.css">
+  <link rel="stylesheet" href="../../assets/app.css">
+  <link rel="stylesheet" href="../../assets/employer.css">
+</head>
+<body data-role="Employer" data-page="contacts">
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Employer navigation">
+    <div class="sidebar-head"><a class="brand" href="/app/employer/dashboard.html"><span class="brand-mark">NH</span><span class="brand-name">Nex<strong>Hire</strong></span></a></div>
+    <div class="workspace-label">Employer workspace</div>
+    <ul class="nav-list"><li><a class="nav-link" href="/app/employer/dashboard.html">Overview</a></li><li><a class="nav-link" href="/app/employer/company.html">Company</a></li><li><a class="nav-link" href="/app/employer/jobs.html">Vacancies</a></li><li><a class="nav-link" href="/app/employer/applicants.html">Applicants</a></li><li><a class="nav-link active" aria-current="page" href="/app/employer/contacts.html">Contact requests</a></li><li><a class="nav-link" href="/app/employer/notifications.html">Notifications</a></li></ul>
+    <div class="sidebar-foot"><div class="user-mini"><span class="avatar" data-user-initials>NH</span><span><strong data-user-name>NexHire user</strong><span data-user-role>Employer</span></span></div><button class="signout" type="button" data-logout>Sign out</button></div>
+  </aside>
+  <button class="scrim" data-scrim aria-label="Close navigation"></button>
+  <main>
+    <header class="topbar"><button class="menu-btn" type="button" data-menu aria-label="Open navigation">☰</button><div class="topbar-title"><strong>Contact requests</strong><span>Employer workspace</span></div><div class="topbar-actions"><span id="pageState" class="badge">Ready</span></div></header>
+    <div class="content employer-content">
+
+<header class="employer-hero"><div><p class="eyebrow">Consent-based outreach</p><h1>Contact candidates only after permission.</h1><p>Track pending, accepted, declined and expired contact requests. Accepted requests unlock candidate contact details.</p></div></header>
+<div id="pageMessage" class="status-message"></div>
+<section class="metric-strip"><article><span>Pending</span><strong id="contactPending">0</strong></article><article><span>Accepted</span><strong id="contactAccepted">0</strong></article><article><span>Declined</span><strong id="contactDeclined">0</strong></article></section>
+<article class="panel"><header class="panel-head"><div><h2>Contact requests</h2><p>Candidate decisions update this list automatically when refreshed.</p></div><button class="btn btn-secondary btn-small" id="refreshContacts" type="button">Refresh</button></header><div id="employerContactList" class="contact-list"></div></article>
+
+    </div>
+  </main>
+</div>
+<script src="../../assets/api.js"></script>
+<script src="../../assets/session.js"></script>
+<script src="../../assets/employer.js"></script>
+</body>
+</html>

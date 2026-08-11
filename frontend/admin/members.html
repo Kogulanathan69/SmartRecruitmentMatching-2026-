@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>NexHire Admin Members</title>
+    <link rel="stylesheet" href="../assets/admin-users.css" />
+  </head>
+  <body>
+    <aside>
+      <h1>Nex<span>Hire</span></h1>
+      <p>Admin workspace</p>
+      <nav>
+        <a class="active">Member management</a><a href="/swagger">Swagger</a>
+      </nav>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <h2>Members</h2>
+          <p>Create and manage Job Seeker, Employer and Admin accounts.</p>
+        </div>
+        <button id="openCreate">+ Create member</button>
+      </header>
+      <section class="stats">
+        <div><b id="total">0</b>Total</div>
+        <div><b id="active">0</b>Active</div>
+        <div><b id="admins">0</b>Admins</div>
+      </section>
+      <section class="panel">
+        <div class="toolbar">
+          <input id="search" placeholder="Search name or email" /><select
+            id="filter"
+          >
+            <option value="">All roles</option>
+            <option>JobSeeker</option>
+            <option>Employer</option>
+            <option>Admin</option>
+          </select>
+        </div>
+        <p id="message"></p>
+        <div class="table">
+          <table>
+            <thead>
+              <tr>
+                <th>Member</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+    <dialog id="dialog">
+      <form id="form">
+        <h3 id="title">Create member</h3>
+        <input id="id" type="hidden" /><label
+          >First name<input id="firstName" required /></label
+        ><label>Last name<input id="lastName" required /></label
+        ><label>Email<input id="email" type="email" required /></label
+        ><label>Phone<input id="phone" /></label
+        ><label
+          >Role<select id="role">
+            <option>JobSeeker</option>
+            <option>Employer</option>
+            <option>Admin</option>
+          </select></label
+        >
+        <div id="passwordFields">
+          <label>Password<input id="password" type="password" /></label
+          ><label>Confirm password<input id="confirm" type="password" /></label>
+        </div>
+        <footer>
+          <button type="button" class="secondary" id="cancel">Cancel</button
+          ><button type="submit">Save</button>
+        </footer>
+      </form>
+    </dialog>
+    <script src="../assets/admin-users.js"></script>
+  </body>
+</html>
